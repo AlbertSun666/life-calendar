@@ -51,7 +51,6 @@
 ├── settings-panel.js/css  # 设置面板组件（弹窗与设置页共用）
 ├── theme-editor.js        # 主题编辑器
 ├── lib/                   # 常量/日期/存储/主题/图形/图标/i18n/名言/历史
-├── themes → 已废弃        # 主题已数据驱动，见 lib/theme-presets.js
 ├── assets/                # 四幅公有领域画作（已压缩）
 ├── icons/                 # 扩展图标
 └── tools/                 # 取色脚本（xcrun swift tools/extract-colors.swift）
