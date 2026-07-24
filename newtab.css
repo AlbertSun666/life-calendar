@@ -274,7 +274,26 @@ html, body {
   background-color: var(--card-bg);
   background-image: none;
   color: var(--text);
-  font-size: var(--num-day-size);
+}
+
+/* 月份格中部的月名（随界面语言；两字时竖排） */
+.cell.label .name {
+  font-size: clamp(12px, 1.05vw, 15px);
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+.cell.label .name.vertical {
+  writing-mode: vertical-rl;
+  font-size: clamp(10.5px, 0.88vw, 12.5px);
+  letter-spacing: 0.1em;
+  white-space: nowrap; /* 禁止折行：避免矮格中挤出第二列与角标重叠 */
+}
+
+/* 三字月名（水無月・神無月）收紧字号与字距，保证一列放下 */
+.cell.label .name.compact {
+  font-size: clamp(9.5px, 0.8vw, 11px);
+  letter-spacing: 0.04em;
 }
 
 /* 格子里的数字 */
@@ -287,19 +306,18 @@ html, body {
 .cell.year .num {
   font-size: var(--num-year-size);
 }
-.cell.day .num {
+.cell.day .num,
+.cell.label .num {
   position: absolute;
   right: 8%;
   bottom: 6%;
   font-size: var(--num-day-size);
 }
-.cell.label .num {
-  position: static;
-}
 
 /* 当年 / 当月 / 当天：红色数字 */
 .cell.year.current .num,
 .cell.label.current .num,
+.cell.label.current .name,
 .cell.day.today .num {
   color: var(--accent);
   font-weight: 700;
@@ -344,8 +362,9 @@ html, body {
   opacity: 0.85;
 }
 
-/* 关闭数字显示：只隐藏日期格子的数字，年份与月份数字常显 */
-body.no-numbers .cell.day .num {
+/* 关闭数字显示：隐藏日期格子与月份角标的数字，年份数字与月名常显 */
+body.no-numbers .cell.day .num,
+body.no-numbers .cell.label .num {
   display: none;
 }
 

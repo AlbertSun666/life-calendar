@@ -18,7 +18,7 @@ import { createMilestoneIcon } from './lib/icons.js';
 import { QUOTES } from './lib/quotes.js';
 import { HISTORY } from './lib/history.js';
 import { mountSettings } from './settings-panel.js';
-import { setLanguage, t, currentLocale } from './lib/i18n.js';
+import { setLanguage, t, currentLocale, monthName, monthNameVertical } from './lib/i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -185,16 +185,28 @@ function buildMonthRows(grid, today, year) {
   for (let month = 1; month <= 12; month++) {
     const row = 5 + month; // 年网格占第 1-5 行
 
-    // 月份标签格
+    // 月份标签格：角标数字（右下角）+ 中部月名（随界面语言）
     const label = document.createElement('div');
     label.className = 'cell label';
     label.style.gridRow = String(row);
     label.style.gridColumn = '1';
     if (year === today.year && month === today.month) label.classList.add('current');
+
     const labelNum = document.createElement('span');
     labelNum.className = 'num';
     labelNum.textContent = String(month);
     label.appendChild(labelNum);
+
+    const labelName = document.createElement('span');
+    labelName.className = 'name';
+    const name = monthName(month);
+    labelName.textContent = name;
+    if (monthNameVertical(month)) {
+      labelName.classList.add('vertical');
+      if (name.length >= 3) labelName.classList.add('compact'); // 三字名收紧防折行
+    }
+    label.appendChild(labelName);
+
     grid.appendChild(label);
 
     // 当月的每一天（天数随展示年份的闰平变化）
