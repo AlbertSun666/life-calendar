@@ -1,0 +1,475 @@
+/* ============================================================
+   人生日历 · 基础布局 + 默认主题
+   主题通过覆盖 :root 下的 CSS 变量实现（见 themes/*.css）
+   ============================================================ */
+
+:root {
+  /* 页面与文字 */
+  --page-bg: #ffffff;
+  --text: #1f1f1f;
+  --muted: #8b8b8b;
+
+  /* 卡片与网格线 */
+  --card-bg: #ffffff;
+  --cell-line: #d9d9d6;
+  --card-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+
+  /* 格子状态（past 取暖灰，accent 取传统色「赤」） */
+  --cell-past: #c8c8c5;
+  --cell-past-text: #262626;
+  --cell-future: #ffffff;
+  --cell-future-text: #333333;
+  --cell-today: var(--cell-future);
+  --today-glow: none;
+
+  /* 强调色（当年 / 当月 / 当天的数字） */
+  --accent: #c3272b;
+
+  /* 格子装饰图形（主题通过 --glyph-* 注入 SVG 背景） */
+  --glyph-past: none;
+  --glyph-future: none;
+  --glyph-today: none;
+
+  /* 数字字号（随网格宽度缩放） */
+  --num-day-size: clamp(8px, 0.8vw, 11px);
+  --num-year-size: clamp(13px, 1.7vw, 23px);
+
+  /* 字体 */
+  --font-num: Didot, 'Bodoni MT', 'Times New Roman', 'Songti SC', serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-title: 'Songti SC', 'Noto Serif CJK SC', 'SimSun', serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--page-bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 键盘焦点可见（可访问性） */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---------- 页面骨架 ---------- */
+
+.page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 5vh 24px 6vh;
+}
+
+.page-header {
+  position: relative;
+  margin-bottom: 22px;
+}
+
+/* 标题、统计、每日一句、历史上的今天：整体居中 */
+.title-block {
+  text-align: center;
+}
+
+.page-header .settings-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-wrap: balance;
+}
+
+.stats {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+/* 每日一句 */
+.quote {
+  margin: 10px 0 0;
+  font-family: var(--font-title);
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--text);
+  opacity: 0.82;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+}
+.quote-author {
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* 历史上的今天 */
+.history {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.history::before {
+  content: var(--history-tag, '历史上的今天');
+  display: inline-block;
+  margin-right: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--cell-line);
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 16px;
+  vertical-align: 1px;
+  opacity: 0.8;
+}
+
+.settings-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.settings-btn:hover {
+  background: rgba(128, 128, 128, 0.14);
+  color: var(--text);
+}
+
+/* ---------- 人生进度条：80 段，每段对应一个年格 ---------- */
+
+.life-progress {
+  display: flex;
+  gap: 1px;
+  height: 6px;
+  margin: 20px 0 16px;
+  padding: 3px;
+  border-radius: 6px;
+  overflow: hidden;
+  /* 与卡片同色的半透明底板：让进度条在背景图上可读 */
+  background: var(--card-bg);
+}
+.life-progress .seg {
+  flex: 1;
+  background: var(--cell-line);
+}
+.life-progress .seg.lived {
+  background: var(--accent);
+}
+.life-progress .seg i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+/* ---------- 日历卡片与网格 ---------- */
+
+.card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  overflow: hidden; /* 裁出圆角 */
+  box-shadow: var(--card-shadow);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(32, 1fr);
+  border-top: 1px solid var(--cell-line);
+  border-left: 1px solid var(--cell-line);
+}
+
+.cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--cell-line);
+  border-bottom: 1px solid var(--cell-line);
+  background-color: var(--cell-future);
+  background-image: var(--glyph-future);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 62%;
+  color: var(--cell-future-text);
+  font-family: var(--font-num);
+  user-select: none;
+}
+
+.cell.past {
+  background-color: var(--cell-past);
+  background-image: var(--glyph-past);
+  color: var(--cell-past-text);
+}
+
+/* 年格：宽为日格 2 倍（跨 2 列），行高约为日格的 1.4 倍；可点击切换年份视图 */
+.cell.year {
+  grid-column: span 2;
+  aspect-ratio: 1.45;
+  cursor: pointer;
+  touch-action: manipulation;
+  flex-direction: column; /* 年份在上，年龄小字在下 */
+}
+
+/* 年格里的年龄小字（颜色继承格子文字色，压淡） */
+.cell.year .age {
+  margin-top: 3px;
+  font-family: var(--font-ui);
+  font-size: clamp(8px, 0.72vw, 11px);
+  letter-spacing: 0.05em;
+  opacity: 0.62;
+}
+
+/* 今年格底部的年度进度条 */
+.year-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--cell-line);
+}
+.year-progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+/* 下方月份网格当前展示的年份 */
+.cell.year.selected {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+/* 主题装饰图形只用于日格，年格与标签格保持纯文字 */
+.cell.year,
+.cell.label {
+  background-image: none;
+}
+
+/* 日格与月份标签格：近正方形 */
+.cell.day,
+.cell.label {
+  aspect-ratio: 1;
+}
+
+.cell.label {
+  background-color: var(--card-bg);
+  background-image: none;
+  color: var(--text);
+  font-size: var(--num-day-size);
+}
+
+/* 格子里的数字 */
+.num {
+  position: relative;
+  z-index: 1;
+  line-height: 1;
+  pointer-events: none;
+}
+.cell.year .num {
+  font-size: var(--num-year-size);
+}
+.cell.day .num {
+  position: absolute;
+  right: 8%;
+  bottom: 6%;
+  font-size: var(--num-day-size);
+}
+.cell.label .num {
+  position: static;
+}
+
+/* 当年 / 当月 / 当天：红色数字 */
+.cell.year.current .num,
+.cell.label.current .num,
+.cell.day.today .num {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* 当天格子：主题可通过 --cell-today / --glyph-today / --today-glow 装饰 */
+.cell.day.today {
+  background-color: var(--cell-today);
+  background-image: var(--glyph-today);
+  box-shadow: var(--today-glow);
+}
+
+/* 里程碑格子：隐藏主题底纹，改由 .ms-icon 显示图标 */
+.cell.milestone {
+  --glyph-past: none;
+  --glyph-future: none;
+  --glyph-today: none;
+}
+
+.ms-icon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 60%;
+  height: 60%;
+}
+.ms-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* 年格上的里程碑小圆点（该年含一次性里程碑时） */
+.ms-dot {
+  position: absolute;
+  top: 10%;
+  right: 10%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+/* 关闭数字显示：只隐藏日期格子的数字，年份与月份数字常显 */
+body.no-numbers .cell.day .num {
+  display: none;
+}
+
+/* 关闭年龄显示 */
+body.no-age .cell.year .age {
+  display: none;
+}
+
+/* 无装饰图形的主题：日数字居中放大（还原经典日历观感） */
+body[data-glyph='none'] .cell.day .num {
+  position: static;
+  font-size: clamp(10px, 1.05vw, 15px);
+}
+
+/* 无图形主题下的里程碑格子：数字让位给图标，退到角落 */
+body[data-glyph='none'] .cell.day.milestone .num {
+  position: absolute;
+  right: 8%;
+  bottom: 6%;
+  font-size: var(--num-day-size);
+}
+
+/* ---------- 首次使用引导 ---------- */
+
+.onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(24, 24, 24, 0.38);
+  backdrop-filter: blur(6px);
+}
+
+.ob-card {
+  width: min(360px, 88vw);
+  padding: 40px 36px 32px;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #1f1f1f;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+  text-align: center;
+}
+
+.ob-title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 24px;
+  letter-spacing: 0.08em;
+}
+
+.ob-desc {
+  margin: 14px 0 26px;
+  font-size: 13px;
+  line-height: 1.9;
+  color: #7a7a7a;
+}
+
+.ob-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #9a9a9a;
+  text-align: left;
+}
+
+.ob-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dcdcdc;
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: var(--font-num);
+  color: #1f1f1f;
+  outline: none;
+}
+.ob-input:focus {
+  border-color: #9a9a9a;
+}
+
+.ob-submit {
+  width: 100%;
+  margin-top: 20px;
+  padding: 11px 0;
+  border: none;
+  border-radius: 8px;
+  background: #1f1f1f;
+  color: #ffffff;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.ob-submit:hover { opacity: 0.85; }
+
+/* ---------- 设置悬浮弹窗 ---------- */
+
+.settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(24, 24, 24, 0.38);
+  backdrop-filter: blur(6px);
+}
+
+.settings-modal {
+  width: min(640px, 92vw);
+  max-height: 84vh;
+  overflow-y: auto;
+  padding: 28px 32px 32px;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #1f1f1f;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+}
+
+[hidden] { display: none !important; }
+
+/* 窄屏适配：整体留白收紧 */
+@media (max-width: 720px) {
+  .page { padding: 4vh 10px 5vh; }
+  .title { font-size: 20px; }
+}

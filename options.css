@@ -1,0 +1,21 @@
+/* options 页骨架（设置面板组件样式见 settings-panel.css） */
+
+:root {
+  --font-ui: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-title: 'Songti SC', 'Noto Serif CJK SC', 'SimSun', serif;
+  --font-num: Didot, 'Bodoni MT', 'Times New Roman', 'Songti SC', serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #fafafa;
+  color: #1f1f1f;
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+}
