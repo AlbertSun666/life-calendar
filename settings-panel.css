@@ -1,15 +1,20 @@
-/* 设置面板组件样式（newtab 悬浮弹窗与 options 页共用） */
+/* 设置面板组件样式（newtab 悬浮弹窗与 options 页共用）
+   布局参考 Open Design：分组标题 + 左右行式设置项 + 底部按钮 + 居中版本信息
+   配色跟随主题：底色 = 未来格色（--panel-bg），凸显色 = 主题色（--accent）；
+   options 页无主题变量时回退为中性浅色 */
 
 .sp-root {
   font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif);
-  /* 面板是白底中性界面，文字颜色固定，不随主题变量变化 */
-  color: #1f1f1f;
+  color: var(--text, #1f1f1f);
 }
+
+/* hidden 属性优先于本文件中的 display 规则（options 页没有全局 [hidden] 规则） */
+[hidden] { display: none !important; }
 
 /* 键盘焦点可见（可访问性） */
 .sp-root :focus-visible,
 .te-modal :focus-visible {
-  outline: 2px solid #1f1f1f;
+  outline: 2px solid var(--accent, #1f1f1f);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -36,205 +41,344 @@
 }
 .sp-save-tip.show { opacity: 1; }
 
-.sp-close {
-  margin-left: auto;
-  flex: none;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  color: #8b8b8b;
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  align-self: center;
-}
-.sp-close:hover { background: rgba(128, 128, 128, 0.14); color: #1f1f1f; }
-
 .sp-section {
-  margin-top: 32px;
-  padding-top: 20px;
-  border-top: 1px solid #e4e4e1;
+  margin-top: 28px;
 }
 
 .sp-section-title {
-  margin: 0 0 16px;
+  margin: 0 0 4px;
   font-size: 13px;
   font-weight: 600;
-  color: #8b8b8b;
+  color: var(--muted, #8b8b8b);
   letter-spacing: 0.12em;
 }
 
-/* ---------- 表单控件 ---------- */
+/* ---------- 行式设置项 ---------- */
 
-.sp-field { margin-bottom: 16px; }
+.sp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--panel-line, #e8e8e4);
+  font-size: 14px;
+}
+.sp-row:last-child { border-bottom: none; }
 
-.sp-field-label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
+/* 双列行：两项并排，中间用竖线分隔 */
+.sp-row-pair {
+  justify-content: stretch;
+  gap: 0;
+}
+.sp-row-pair .sp-row-check {
+  flex: 1 1 0;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+}
+.sp-row-pair .sp-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--panel-line, #e8e8e4);
+  margin: 6px 0;
+  opacity: 0.6;
+}
+.sp-row-pair .sp-row-inline {
+  flex: 1 1 0;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+  flex-wrap: wrap;
+}
+.sp-row-label-inline {
+  font-size: 14px;
+  white-space: nowrap;
 }
 
-.sp-input {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1px solid #d5d5d2;
+.sp-row-label { flex: none; }
+
+.sp-row-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sp-input,
+.sp-select {
+  padding: 8px 12px;
+  border: 1px solid var(--panel-line, #d5d5d2);
   border-radius: 8px;
-  background: #ffffff;
+  background: transparent;
   font-size: 14px;
   font-family: inherit;
-  color: #1f1f1f;
+  color: inherit;
   outline: none;
+  max-width: 280px;
 }
 input[type="date"].sp-input {
   font-family: var(--font-num, Didot, 'Bodoni MT', 'Times New Roman', serif);
 }
-.sp-input:focus { border-color: #9a9a9a; }
+.sp-input:focus,
+.sp-select:focus { border-color: var(--muted, #9a9a9a); }
 
 .sp-hint {
   margin: 6px 0 0;
   font-size: 12px;
-  color: #8b8b8b;
+  color: var(--muted, #8b8b8b);
   line-height: 1.7;
 }
 
-.sp-check-group {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+/* ---------- 自定义复选框（参考 Open Design） ---------- */
 
 .sp-check {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.sp-check input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  border: 1px solid var(--panel-line, #d5d5d2);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  flex: none;
+}
+.sp-check input:checked {
+  background: var(--accent, #1f1f1f);
+  border-color: var(--accent, #1f1f1f);
+}
+.sp-check input:checked::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--accent-on, #ffffff);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ---------- 滑杆（参考 Open Design） ---------- */
+
+.sp-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 150px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--panel-line, #d5d5d2);
+  outline: none;
+}
+.sp-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent, #1f1f1f);
+  cursor: pointer;
+  border: none;
+}
+.sp-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent, #1f1f1f);
+  cursor: pointer;
+  border: none;
+}
+.sp-range-value {
+  min-width: 30px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--muted, #8b8b8b);
+  font-family: var(--font-num, Didot, 'Bodoni MT', 'Times New Roman', serif);
+}
+
+/* ---------- 主题操作 ---------- */
+
+.sp-theme-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--panel-line, #e8e8e4);
+}
+
+/* 主题三色块：底色 / 过去色 / 主题色 */
+.sp-swatches {
+  display: inline-flex;
+  gap: 4px;
+}
+.sp-swatches i {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1px solid var(--panel-line, #d5d5d2);
+}
+
+/* ---------- 按钮 ---------- */
+
+.sp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  border: 1px solid var(--panel-line, #d5d5d2);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
   font-size: 14px;
   cursor: pointer;
+  font-family: inherit;
+  transition: opacity 0.15s, background 0.15s;
 }
-.sp-check input { accent-color: #1f1f1f; }
+.sp-btn:hover { background: rgba(128, 128, 128, 0.12); }
+.sp-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.sp-btn:disabled:hover { background: none; }
+.sp-btn-primary {
+  background: var(--accent, #1f1f1f);
+  color: var(--accent-on, #ffffff);
+  border-color: var(--accent, #1f1f1f);
+}
+.sp-btn-primary:hover { background: var(--accent, #1f1f1f); opacity: 0.88; }
+.sp-btn-ghost {
+  background: transparent;
+  color: inherit;
+}
+.sp-btn.danger {
+  color: #c3272b;
+  border-color: rgba(195, 39, 43, 0.35);
+}
+.sp-btn.danger:hover { background: rgba(195, 39, 43, 0.08); }
 
-/* ---------- 主题选择 ---------- */
+/* ---------- 里程碑 ---------- */
 
-.sp-theme-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 12px;
+.sp-ms-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.sp-theme-card {
-  padding: 14px;
-  border: 1px solid #e4e4e1;
-  border-radius: 12px;
-  background: #ffffff;
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-.sp-theme-card:hover { border-color: #b5b5b2; }
-.sp-theme-card.selected {
-  border-color: #1f1f1f;
-  box-shadow: 0 0 0 1px #1f1f1f;
-}
-
-.sp-theme-preview {
+.sp-ms-row {
   display: flex;
-  gap: 4px;
-  margin-bottom: 10px;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px dashed var(--panel-line, #e4e4e1);
+  font-size: 14px;
 }
-.sp-theme-preview i {
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
-}
+.sp-ms-row:last-child { border-bottom: none; }
 
-.sp-theme-name { font-size: 14px; font-weight: 600; }
-.sp-theme-desc {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #8b8b8b;
-  line-height: 1.6;
-}
-
-/* ---------- 毛玻璃滑杆 ---------- */
-
-.sp-glass {
-  margin-top: 20px;
-}
-
-.sp-glass-label {
-  display: block;
-  margin-bottom: 8px;
+.sp-ms-date {
+  width: 96px;
+  flex: none;
+  font-family: var(--font-num, Didot, 'Bodoni MT', 'Times New Roman', serif);
+  color: var(--muted, #8b8b8b);
   font-size: 13px;
 }
+.sp-ms-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--muted, #8b8b8b);
+}
+.sp-ms-icon svg { width: 100%; height: 100%; display: block; }
+.sp-ms-label { flex: 1; min-width: 0; }
+.sp-ms-del {
+  flex: none;
+  border: none;
+  background: none;
+  color: var(--muted, #8b8b8b);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.sp-ms-del:hover { color: #c3272b; background: rgba(128, 128, 128, 0.12); }
 
-.sp-glass-row {
+.sp-ms-empty {
+  padding: 11px 0;
+  font-size: 13px;
+  color: var(--muted, #8b8b8b);
+  border-bottom: 1px dashed var(--panel-line, #e4e4e1);
+}
+
+.sp-ms-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 0 0;
+}
+/* 第一行：日期、事件名称、每年重复、新增按钮 */
+.sp-ms-form-row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.sp-glass-row input[type='range'] {
-  flex: 1;
-  accent-color: #1f1f1f;
-}
-.sp-glass-end {
-  font-size: 12px;
-  color: #8b8b8b;
-  flex: none;
-}
-.sp-glass-value {
-  width: 40px;
-  flex: none;
-  text-align: right;
-  font-size: 12px;
-  color: #1f1f1f;
-}
+.sp-ms-form-row .sp-input { width: auto; max-width: none; }
+.sp-ms-form-row .sp-input[type="date"] { flex: 0 1 170px; }
+.sp-ms-label-input { flex: 1 1 120px; min-width: 100px; }
+.sp-ms-form-row .sp-btn { flex: none; }
 
-/* ---------- 主题操作与自定义主题卡 ---------- */
-
-.sp-theme-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.sp-theme-card.custom {
-  position: relative;
-}
-
-.sp-theme-card.custom::after {
-  content: var(--custom-tag, '自定义');
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: #1f1f1f;
-  color: #ffffff;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-}
-
-.sp-theme-ops {
-  display: none;
-  gap: 8px;
-  margin-top: 10px;
-}
-.sp-theme-card:hover .sp-theme-ops {
-  display: flex;
-}
-.sp-theme-ops button {
-  border: none;
-  background: none;
-  padding: 2px 0;
-  font-size: 12px;
-  color: #8b8b8b;
+/* 第二行：图标选择器，允许换行为后续新增图标预留位置 */
+.sp-icon-picker { display: flex; flex-wrap: wrap; gap: 6px; }
+.sp-icon-btn {
+  width: 32px;
+  height: 32px;
+  padding: 5px;
+  border: 1px solid var(--panel-line, #e4e4e1);
+  border-radius: 8px;
+  background: transparent;
   cursor: pointer;
 }
-.sp-theme-ops button:hover { color: #1f1f1f; }
-.sp-theme-ops button.danger:hover { color: #c3272b; }
+.sp-icon-btn svg { width: 100%; height: 100%; display: block; }
+.sp-icon-btn.selected {
+  border-color: var(--accent, #1f1f1f);
+  box-shadow: 0 0 0 1px var(--accent, #1f1f1f);
+}
 
-/* ---------- 主题编辑器 ---------- */
+.sp-ms-recur { flex: none; white-space: nowrap; font-size: 13px; }
+
+/* ---------- 底部按钮与版本 ---------- */
+
+.sp-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--panel-line, #e8e8e4);
+}
+
+.sp-version {
+  margin: 24px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted, #b5b5b2);
+  letter-spacing: 0.05em;
+  font-family: var(--font-num, Didot, 'Bodoni MT', 'Times New Roman', serif);
+}
+
+/* ---------- 主题编辑器（固定白底中性界面，不随主题变化） ---------- */
 
 .te-overlay {
   position: fixed;
@@ -255,6 +399,8 @@ input[type="date"].sp-input {
   border-radius: 16px;
   background: #ffffff;
   color: #1f1f1f;
+  /* 白底卡片，强制 light color-scheme，避免暗色主题下原生控件渲染成浅色 */
+  color-scheme: light;
   box-shadow: 0 16px 56px rgba(0, 0, 0, 0.25);
   font-family: var(--font-ui, -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif);
 }
@@ -415,104 +561,4 @@ input[type="date"].sp-input {
   justify-content: flex-end;
   gap: 10px;
   padding: 18px 28px 24px;
-}
-
-/* ---------- 里程碑 ---------- */
-
-.sp-ms-list {
-  margin: 0 0 16px;
-  padding: 0;
-  list-style: none;
-}
-
-.sp-ms-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border: 1px solid #e4e4e1;
-  border-radius: 10px;
-  background: #ffffff;
-  margin-bottom: 8px;
-}
-.sp-ms-item-icon {
-  width: 20px;
-  height: 20px;
-  flex: none;
-}
-.sp-ms-item-icon svg { width: 100%; height: 100%; display: block; }
-.sp-ms-item-label { font-size: 14px; }
-.sp-ms-item-date {
-  margin-left: auto;
-  font-size: 12px;
-  color: #8b8b8b;
-  font-family: var(--font-num, Didot, 'Bodoni MT', 'Times New Roman', serif);
-}
-.sp-ms-del {
-  flex: none;
-  border: none;
-  background: none;
-  color: #b5b5b2;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 6px;
-}
-.sp-ms-del:hover { color: #cc2222; background: rgba(0, 0, 0, 0.04); }
-
-.sp-ms-empty {
-  font-size: 13px;
-  color: #8b8b8b;
-  margin: 0 0 16px;
-}
-
-.sp-ms-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  padding: 14px;
-  border: 1px dashed #cfcfcc;
-  border-radius: 12px;
-  background: #ffffff;
-}
-.sp-ms-form .sp-input { width: auto; flex: 1 1 130px; }
-.sp-ms-label-input { min-width: 120px; }
-
-.sp-icon-picker { display: flex; gap: 4px; }
-.sp-icon-btn {
-  width: 32px;
-  height: 32px;
-  padding: 5px;
-  border: 1px solid #e4e4e1;
-  border-radius: 8px;
-  background: #ffffff;
-  cursor: pointer;
-}
-.sp-icon-btn svg { width: 100%; height: 100%; display: block; }
-.sp-icon-btn.selected {
-  border-color: #1f1f1f;
-  box-shadow: 0 0 0 1px #1f1f1f;
-}
-
-.sp-ms-recur { font-size: 13px; }
-
-.sp-ms-add {
-  padding: 9px 22px;
-  border: none;
-  border-radius: 8px;
-  background: #1f1f1f;
-  color: #ffffff;
-  font-size: 13px;
-  letter-spacing: 0.15em;
-  cursor: pointer;
-}
-.sp-ms-add:hover { opacity: 0.85; }
-
-.sp-version {
-  margin: 36px 0 0;
-  text-align: center;
-  font-size: 12px;
-  color: #b5b5b2;
-  letter-spacing: 0.05em;
 }

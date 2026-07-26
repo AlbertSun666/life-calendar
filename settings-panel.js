@@ -1,5 +1,5 @@
 // 设置面板组件：newtab 悬浮弹窗与 options 页共用
-// mountSettings(root, { showCloseButton, onClose, onSaved })
+// mountSettings(root, { onClose, onSaved, onReOnboard })
 
 import { MILESTONE_ICONS, MAX_MILESTONES } from './lib/constants.js';
 import { getSettings, saveSettings, getBgImage, saveBgImage, deleteBgImage } from './lib/storage.js';
@@ -7,106 +7,98 @@ import { parseISODate } from './lib/date.js';
 import { MILESTONE_SVGS } from './lib/icons.js';
 import { THEME_PRESETS, allThemes, resolveTheme } from './lib/theme-presets.js';
 import { openThemeEditor } from './theme-editor.js';
-import { LANGUAGES, setLanguage, t } from './lib/i18n.js';
+import { t } from './lib/i18n.js';
+
+// 自定义主题数量上限（顶栏快速切换最多显示 5 预制 + 5 自定义）
+const MAX_CUSTOM_THEMES = 5;
 
 function template() {
   return `
   <div class="sp-header">
     <h1 class="sp-title">${t('sp.title')}</h1>
     <span class="sp-save-tip" data-sp="save-tip">${t('sp.saved')}</span>
-    <button class="sp-close" data-sp="close" title="${t('te.cancel')}" hidden>×</button>
   </div>
 
   <section class="sp-section">
     <h2 class="sp-section-title">${t('sp.basic')}</h2>
-    <div class="sp-field">
-      <label class="sp-field-label" for="sp-language">${t('sp.language')}</label>
-      <select class="sp-input" id="sp-language" data-sp="language"></select>
+    <div class="sp-row">
+      <span class="sp-row-label">${t('sp.nickname')}</span>
+      <span class="sp-row-control"><input class="sp-input" type="text" id="sp-nickname" data-sp="nickname" maxlength="20" autocomplete="off" placeholder="${t('sp.nicknamePh')}"></span>
     </div>
-    <div class="sp-field">
-      <label class="sp-field-label" for="sp-nickname">${t('sp.nickname')}</label>
-      <input class="sp-input" type="text" id="sp-nickname" data-sp="nickname" maxlength="20" autocomplete="off" placeholder="${t('sp.nicknamePh')}">
+    <div class="sp-row">
+      <span class="sp-row-label">${t('sp.birthdate')}</span>
+      <span class="sp-row-control"><input class="sp-input" type="date" id="sp-birthdate" data-sp="birthdate" min="1949-01-01" max="${new Date().getFullYear()}-12-31"></span>
     </div>
-    <div class="sp-field">
-      <label class="sp-field-label" for="sp-birthdate">${t('sp.birthdate')}</label>
-      <input class="sp-input" type="date" id="sp-birthdate" data-sp="birthdate" min="1900-01-01">
+    <div class="sp-row">
+      <span class="sp-row-label">${t('sp.timezone')}</span>
+      <span class="sp-row-control"><select class="sp-select" id="sp-timezone" data-sp="timezone"></select></span>
     </div>
-    <div class="sp-field">
-      <label class="sp-field-label" for="sp-timezone">${t('sp.timezone')}</label>
-      <select class="sp-input" id="sp-timezone" data-sp="timezone"></select>
-      <p class="sp-hint">${t('sp.timezoneHint')}</p>
+    <div class="sp-row">
+      <span class="sp-row-label">${t('sp.theme')}</span>
+      <span class="sp-row-control">
+        <span class="sp-swatches" data-sp="theme-swatches" aria-hidden="true"><i></i><i></i><i></i></span>
+        <select class="sp-select" id="sp-theme" data-sp="theme-select"></select>
+      </span>
     </div>
-  </section>
-
-  <section class="sp-section">
-    <h2 class="sp-section-title">${t('sp.theme')}</h2>
-    <div class="sp-theme-list" data-sp="theme-list"></div>
     <div class="sp-theme-actions">
-      <button class="te-btn" data-sp="theme-save-as">${t('sp.saveAs')}</button>
-      <button class="te-btn te-btn-ghost" data-sp="theme-new">${t('sp.newTheme')}</button>
+      <button class="sp-btn sp-btn-ghost" data-sp="theme-edit">${t('sp.editCurrent')}</button>
+      <button class="sp-btn sp-btn-ghost" data-sp="theme-save-as">${t('sp.saveAs')}</button>
+      <button class="sp-btn sp-btn-ghost" data-sp="theme-new">${t('sp.newTheme')}</button>
+      <button class="sp-btn sp-btn-ghost danger" data-sp="theme-delete" hidden>${t('sp.delete')}</button>
     </div>
-    <p class="sp-hint">${t('sp.themeHint')}</p>
   </section>
 
   <section class="sp-section">
     <h2 class="sp-section-title">${t('sp.display')}</h2>
-    <div class="sp-check-group">
-      <label class="sp-check">
-        <input type="checkbox" data-sp="show-numbers">
-        <span>${t('sp.showNumbers')}</span>
-      </label>
-      <label class="sp-check">
-        <input type="checkbox" data-sp="show-age">
-        <span>${t('sp.showAge')}</span>
-      </label>
-      <label class="sp-check">
-        <input type="checkbox" data-sp="show-quote">
-        <span>${t('sp.showQuote')}</span>
-      </label>
-      <label class="sp-check">
-        <input type="checkbox" data-sp="show-history">
-        <span>${t('sp.showHistory')}</span>
-      </label>
-      <label class="sp-check">
-        <input type="checkbox" data-sp="show-bg">
-        <span>${t('sp.showBg')}</span>
-      </label>
+    <div class="sp-row sp-row-pair">
+      <label class="sp-check sp-row-check"><input type="checkbox" data-sp="show-age"><span>${t('sp.showAge')}</span></label>
+      <span class="sp-divider" aria-hidden="true"></span>
+      <label class="sp-check sp-row-check"><input type="checkbox" data-sp="show-numbers"><span>${t('sp.showNumbers')}</span></label>
     </div>
-    <div class="sp-glass">
-      <label class="sp-glass-label" for="sp-glass">${t('sp.glass')}</label>
-      <div class="sp-glass-row">
-        <span class="sp-glass-end">${t('sp.glassSolid')}</span>
-        <input type="range" min="0" max="100" step="1" id="sp-glass" data-sp="glass">
-        <span class="sp-glass-end">${t('sp.glassClear')}</span>
-        <span class="sp-glass-value" data-sp="glass-value"></span>
-      </div>
-      <p class="sp-hint">${t('sp.glassHint')}</p>
+    <div class="sp-row sp-row-pair">
+      <label class="sp-check sp-row-check"><input type="checkbox" data-sp="show-quote"><span>${t('sp.showQuote')}</span></label>
+      <span class="sp-divider" aria-hidden="true"></span>
+      <label class="sp-check sp-row-check"><input type="checkbox" data-sp="show-history"><span>${t('sp.showHistory')}</span></label>
+    </div>
+    <div class="sp-row sp-row-pair">
+      <label class="sp-check sp-row-check"><input type="checkbox" data-sp="show-bg"><span>${t('sp.showBg')}</span></label>
+      <span class="sp-divider" aria-hidden="true"></span>
+      <span class="sp-row-check sp-row-inline">
+        <span class="sp-row-label-inline">${t('sp.glass')}</span>
+        <input type="range" class="sp-range" min="0" max="100" step="1" id="sp-glass" data-sp="glass">
+        <span class="sp-range-value" data-sp="glass-value"></span>
+      </span>
     </div>
   </section>
 
   <section class="sp-section">
     <h2 class="sp-section-title">${t('sp.ms')}</h2>
-    <p class="sp-hint">${t('sp.msHint')}</p>
     <ul class="sp-ms-list" data-sp="ms-list"></ul>
     <form class="sp-ms-form" data-sp="ms-form">
-      <input class="sp-input sp-ms-label-input" type="text" data-sp="ms-label" maxlength="20" autocomplete="off" placeholder="${t('sp.msLabelPh')}" required>
-      <input class="sp-input" type="date" data-sp="ms-date" required>
+      <div class="sp-ms-form-row">
+        <input class="sp-input" type="date" data-sp="ms-date" min="1949-01-01" max="${new Date().getFullYear()}-12-31" required>
+        <input class="sp-input sp-ms-label-input" type="text" data-sp="ms-label" maxlength="20" autocomplete="off" placeholder="${t('sp.msLabelPh')}" required>
+        <label class="sp-check sp-ms-recur">
+          <input type="checkbox" data-sp="ms-recurring" checked>
+          <span>${t('sp.msRecurring')}</span>
+        </label>
+        <button class="sp-btn sp-btn-primary" type="submit">${t('sp.msAdd')}</button>
+      </div>
       <div class="sp-icon-picker" data-sp="icon-picker"></div>
-      <label class="sp-check sp-ms-recur">
-        <input type="checkbox" data-sp="ms-recurring" checked>
-        <span>${t('sp.msRecurring')}</span>
-      </label>
-      <button class="sp-ms-add" type="submit">${t('sp.msAdd')}</button>
     </form>
   </section>
+
+  <div class="sp-actions">
+    <button class="sp-btn sp-btn-ghost" data-sp="re-onboard">${t('sp.reOnboard')}</button>
+    <button class="sp-btn sp-btn-primary" data-sp="done">${t('sp.done')}</button>
+  </div>
 
   <p class="sp-version" id="sp-version" data-sp="version"></p>
 `;
 }
 
-export async function mountSettings(root, { showCloseButton = false, onClose, onSaved } = {}) {
+export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}) {
   let settings = await getSettings();
-  setLanguage(settings.language);
   let selectedIcon = MILESTONE_ICONS[0];
   let saveTipTimer = null;
 
@@ -121,21 +113,19 @@ export async function mountSettings(root, { showCloseButton = false, onClose, on
     if (new URLSearchParams(location.search).get('editor') === 'new') newBlankTheme();
   }
 
-  /** 整体渲染（语言切换后重建 UI） */
+  /** 整体渲染 */
   function renderAll() {
     document.documentElement.style.setProperty('--custom-tag', `"${t('sp.custom')}"`);
     root.innerHTML = template();
-    buildLanguageOptions();
     buildTimezoneOptions();
+    buildThemeOptions();
     buildIconPicker();
     fillForm();
-    renderThemeList();
     renderMilestoneList();
     bindEvents();
     fillVersion();
   }
 
-  /** 显示当前版本号（扩展环境读 manifest，开发预览读 manifest.json 文件） */
   async function fillVersion() {
     let version = '';
     try {
@@ -149,27 +139,13 @@ export async function mountSettings(root, { showCloseButton = false, onClose, on
     if (version) $('version').textContent = t('sp.version', { version });
   }
 
-  function buildLanguageOptions() {
-    const select = $('language');
-    const auto = document.createElement('option');
-    auto.value = '';
-    auto.textContent = t('lang.system');
-    select.appendChild(auto);
-    for (const lang of LANGUAGES) {
-      const opt = document.createElement('option');
-      opt.value = lang.id;
-      opt.textContent = lang.name;
-      select.appendChild(opt);
-    }
-  }
-
   /* ---------- 表单填充 ---------- */
 
   function fillForm() {
-    $('language').value = settings.language;
     $('nickname').value = settings.nickname;
     $('birthdate').value = settings.birthdate;
     $('timezone').value = settings.timezone;
+    $('theme-select').value = settings.theme;
     $('show-numbers').checked = settings.showNumbers;
     $('show-age').checked = settings.showAge;
     $('show-quote').checked = settings.showQuote;
@@ -177,10 +153,7 @@ export async function mountSettings(root, { showCloseButton = false, onClose, on
     $('show-bg').checked = settings.showBgImage !== false;
     $('glass').value = settings.glass ?? 50;
     updateGlassLabel();
-    if (showCloseButton) {
-      $('close').hidden = false;
-      $('close').addEventListener('click', () => onClose && onClose());
-    }
+    updateThemeCustomOps();
   }
 
   function buildTimezoneOptions() {
@@ -210,78 +183,39 @@ export async function mountSettings(root, { showCloseButton = false, onClose, on
     }
   }
 
-  /* ---------- 主题列表（预制 + 自定义） ---------- */
+  /* ---------- 主题下拉与自定义主题操作 ---------- */
 
-  function renderThemeList() {
-    const list = $('theme-list');
-    list.textContent = '';
-
+  function buildThemeOptions() {
+    const select = $('theme-select');
+    select.textContent = '';
     for (const theme of allThemes(settings)) {
-      const { cellPast, cellFuture, accent } = theme.colors;
-      const card = document.createElement('div');
-      card.className = 'sp-theme-card' + (theme.builtin ? '' : ' custom');
-      card.dataset.theme = theme.id;
-      card.classList.toggle('selected', theme.id === settings.theme);
-
-      card.innerHTML = `
-        <div class="sp-theme-preview">
-          <i style="background:${cellPast}"></i>
-          <i style="background:${cellFuture}"></i>
-          <i style="background:${accent}"></i>
-        </div>
-        <div class="sp-theme-name"></div>
-        <div class="sp-theme-desc"></div>
-      `;
-      card.querySelector('.sp-theme-name').textContent = theme.builtin
-        ? t(`theme.${theme.id}`)
-        : theme.name;
-      card.querySelector('.sp-theme-desc').textContent = theme.builtin
-        ? t(`theme.${theme.id}.desc`)
-        : t('sp.customTheme');
-      card.addEventListener('click', () => save({ theme: theme.id }));
-
-      // 键盘可达：Enter / Space 选中主题
-      card.tabIndex = 0;
-      card.setAttribute('role', 'button');
-      card.setAttribute('aria-pressed', String(theme.id === settings.theme));
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          save({ theme: theme.id });
-        }
-      });
-
-      // 自定义主题：编辑 / 删除操作
-      if (!theme.builtin) {
-        const ops = document.createElement('div');
-        ops.className = 'sp-theme-ops';
-
-        const edit = document.createElement('button');
-        edit.textContent = t('sp.edit');
-        edit.addEventListener('click', (e) => {
-          e.stopPropagation();
-          editCustomTheme(theme.id);
-        });
-
-        const del = document.createElement('button');
-        del.textContent = t('sp.delete');
-        del.className = 'danger';
-        del.addEventListener('click', (e) => {
-          e.stopPropagation();
-          deleteCustomTheme(theme.id);
-        });
-
-        ops.append(edit, del);
-        card.appendChild(ops);
-      }
-
-      list.appendChild(card);
+      const opt = document.createElement('option');
+      opt.value = theme.id;
+      opt.textContent = theme.builtin ? t(`theme.${theme.id}`) : theme.name;
+      select.appendChild(opt);
     }
+    select.value = settings.theme;
+  }
+
+  /** 主题操作区状态：预制主题只读（禁用编辑、隐藏删除）；同步主题色块（过去 / 今天 / 未来） */
+  function updateThemeCustomOps() {
+    const theme = resolveTheme(settings.theme, settings);
+    $('theme-edit').disabled = theme.builtin;
+    $('theme-delete').hidden = theme.builtin;
+
+    const [past, today, future] = $('theme-swatches').children;
+    past.style.background = theme.colors.cellPast;
+    today.style.background = theme.colors.accent;
+    future.style.background = theme.colors.cellFuture;
   }
 
   /* ---------- 自定义主题：另存为 / 新建 / 编辑 / 删除 ---------- */
 
   function saveAsCurrentTheme() {
+    if ((settings.customThemes || []).length >= MAX_CUSTOM_THEMES) {
+      window.alert(t('sp.themeLimit'));
+      return;
+    }
     const current = resolveTheme(settings.theme, settings);
     const currentName = current.builtin ? t(`theme.${current.id}`) : current.name;
     const draft = structuredClone(current);
@@ -305,6 +239,10 @@ export async function mountSettings(root, { showCloseButton = false, onClose, on
   }
 
   function newBlankTheme() {
+    if ((settings.customThemes || []).length >= MAX_CUSTOM_THEMES) {
+      window.alert(t('sp.themeLimit'));
+      return;
+    }
     const draft = structuredClone(THEME_PRESETS[0]);
     draft.id = `ct-${Date.now().toString(36)}`;
     draft.name = t('sp.customTheme');
@@ -360,6 +298,9 @@ export async function mountSettings(root, { showCloseButton = false, onClose, on
   function updateGlassLabel() {
     const v = Number($('glass').value);
     $('glass-value').textContent = v === 50 ? t('sp.glassOriginal') : `${v}%`;
+    // 滑杆已划过部分用主题色填充
+    $('glass').style.background =
+      `linear-gradient(90deg, var(--accent) ${v}%, var(--panel-line, #d5d5d2) ${v}%)`;
   }
 
   /* ---------- 里程碑列表 ---------- */
@@ -382,32 +323,32 @@ export async function mountSettings(root, { showCloseButton = false, onClose, on
 
     for (const ms of sorted) {
       const item = document.createElement('li');
-      item.className = 'sp-ms-item';
-
-      const icon = document.createElement('span');
-      icon.className = 'sp-ms-item-icon';
-      icon.innerHTML = MILESTONE_SVGS[ms.icon] || MILESTONE_SVGS.star;
-
-      const label = document.createElement('span');
-      label.className = 'sp-ms-item-label';
-      label.textContent = ms.label || t('day.milestone');
+      item.className = 'sp-ms-row';
 
       const date = document.createElement('span');
-      date.className = 'sp-ms-item-date';
+      date.className = 'sp-ms-date';
       date.textContent = ms.year == null
         ? t('ms.yearly', { month: ms.month, day: ms.day })
         : t('ms.onceday', { year: ms.year, month: ms.month, day: ms.day });
 
+      const icon = document.createElement('span');
+      icon.className = 'sp-ms-icon';
+      icon.innerHTML = MILESTONE_SVGS[ms.icon] || MILESTONE_SVGS.star;
+
+      const label = document.createElement('span');
+      label.className = 'sp-ms-label';
+      label.textContent = ms.label || t('day.milestone');
+
       const del = document.createElement('button');
       del.className = 'sp-ms-del';
       del.type = 'button';
-      del.textContent = '×';
+      del.textContent = t('sp.delete');
       del.title = t('sp.delete');
       del.addEventListener('click', () => {
         save({ milestones: settings.milestones.filter((m) => m.id !== ms.id) });
       });
 
-      item.append(icon, label, date, del);
+      item.append(date, icon, label, del);
       list.appendChild(item);
     }
   }
@@ -418,14 +359,9 @@ export async function mountSettings(root, { showCloseButton = false, onClose, on
     // 主题操作
     $('theme-save-as').addEventListener('click', saveAsCurrentTheme);
     $('theme-new').addEventListener('click', newBlankTheme);
-
-    // 语言：保存并整体重建面板
-    $('language').addEventListener('change', async (e) => {
-      setLanguage(e.target.value);
-      document.documentElement.style.setProperty('--custom-tag', `"${t('sp.custom')}"`);
-      await save({ language: e.target.value });
-      renderAll();
-    });
+    $('theme-select').addEventListener('change', (e) => save({ theme: e.target.value }));
+    $('theme-edit').addEventListener('click', () => editCustomTheme(settings.theme));
+    $('theme-delete').addEventListener('click', () => deleteCustomTheme(settings.theme));
 
     // 昵称：输入防抖保存
     let nicknameTimer = null;
@@ -488,13 +424,22 @@ export async function mountSettings(root, { showCloseButton = false, onClose, on
       $('ms-date').value = '';
       $('ms-label').focus();
     });
+
+    // 底部按钮
+    $('re-onboard').addEventListener('click', () => {
+      if (onReOnboard) onReOnboard();
+    });
+    $('done').addEventListener('click', () => {
+      if (onClose) onClose();
+    });
   }
 
   /* ---------- 保存 ---------- */
 
   async function save(patch) {
     settings = await saveSettings(patch);
-    renderThemeList();
+    buildThemeOptions();
+    updateThemeCustomOps();
     renderMilestoneList();
     showSaveTip();
     if (onSaved) onSaved(settings);

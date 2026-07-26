@@ -2,7 +2,7 @@
 
 import { LIFE_YEARS, YEAR_COLS } from './lib/constants.js';
 import { getSettings, saveSettings, onSettingsChanged, getBgImage } from './lib/storage.js';
-import { resolveTheme } from './lib/theme-presets.js';
+import { resolveTheme, allThemes } from './lib/theme-presets.js';
 import { buildThemeCSS } from './lib/theme-css.js';
 import {
   todayInZone,
@@ -15,10 +15,11 @@ import {
   formatNumber,
 } from './lib/date.js';
 import { createMilestoneIcon } from './lib/icons.js';
+import { glyphDataURI } from './lib/glyphs.js';
 import { QUOTES } from './lib/quotes.js';
 import { HISTORY } from './lib/history.js';
 import { mountSettings } from './settings-panel.js';
-import { setLanguage, t, currentLocale, monthName, monthNameVertical } from './lib/i18n.js';
+import { LANGUAGES, getLanguage, setLanguage, t, currentLocale, monthName, monthNameVertical } from './lib/i18n.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -32,6 +33,7 @@ async function init() {
   settings = await getSettings();
   setLanguage(settings.language);
   applyTheme(settings.theme);
+  buildLangMenu();
 
   if (!parseISODate(settings.birthdate)) {
     showOnboarding();
@@ -41,10 +43,11 @@ async function init() {
 
   bindEvents();
 
-  // 开发预览：?settings=open 直接打开设置弹窗；?year=2022 切换年份视图
+  // 开发预览：?settings=open 直接打开设置弹窗；?year=2022 切换年份视图；?lang=open 展开语言菜单
   if (IS_DEV) {
     const params = new URLSearchParams(location.search);
     if (params.get('settings') === 'open') openSettingsModal();
+    if (params.get('lang') === 'open') setTimeout(toggleLangMenu, 500);
     const devYear = Number(params.get('year'));
     if (devYear >= 1900 && devYear <= 2200) {
       viewYear = devYear;
@@ -78,6 +81,17 @@ async function applyTheme(themeId) {
   $('theme-style').textContent = buildThemeCSS(theme, bgUrl, settings.glass ?? 50);
   document.body.dataset.theme = theme.builtin ? theme.id : 'custom';
   document.body.dataset.glyph = theme.glyph || 'none';
+
+  // 标题上方的主题图标三连：过去色 / 今天色 / 未来色
+  const trio = $('title-glyphs');
+  const hasGlyph = theme.glyph && theme.glyph !== 'none';
+  trio.hidden = !hasGlyph;
+  if (hasGlyph) {
+    const [past, today, future] = trio.querySelectorAll('.tg');
+    past.style.backgroundImage = glyphDataURI(theme.glyph, theme.colors.cellPast, false);
+    today.style.backgroundImage = glyphDataURI(theme.glyph, theme.colors.accent, true);
+    future.style.backgroundImage = glyphDataURI(theme.glyph, theme.colors.cellFuture, false);
+  }
 }
 
 /* ---------- 渲染 ---------- */
@@ -97,10 +111,12 @@ function renderPage() {
   document.title = title;
 
   const stats = lifeStats(birth, today);
-  $('stats').textContent = t('stats.line', {
-    lived: formatNumber(stats.lived, currentLocale()),
-    remaining: formatNumber(stats.remaining, currentLocale()),
-    percent: stats.percent.toFixed(1),
+  // 数字用 .num 包裹以便主题色凸显（值为自生成数字，无注入风险）
+  const num = (v) => `<b class="num">${v}</b>`;
+  $('stats').innerHTML = t('stats.line', {
+    lived: num(formatNumber(stats.lived, currentLocale())),
+    remaining: num(formatNumber(stats.remaining, currentLocale())),
+    percent: num(stats.percent.toFixed(1)),
   });
 
   // 设置按钮的无障碍标签随语言
@@ -116,6 +132,29 @@ function renderPage() {
 
   $('onboarding').hidden = true;
   $('page').hidden = false;
+
+  renderThemeBar();
+}
+
+/** 顶栏主题切换：显示全部主题（预制 + 自定义），点击即切换 */
+function renderThemeBar() {
+  const bar = $('theme-bar');
+  bar.textContent = '';
+
+  for (const theme of allThemes(settings)) {
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'theme-pill' + (theme.id === settings.theme ? ' active' : '');
+    pill.textContent = theme.builtin ? t(`theme.${theme.id}`) : theme.name;
+    pill.setAttribute('aria-pressed', String(theme.id === settings.theme));
+    pill.addEventListener('click', async () => {
+      if (theme.id === settings.theme) return;
+      settings = await saveSettings({ theme: theme.id });
+      applyTheme(settings.theme);
+      renderThemeBar();
+    });
+    bar.appendChild(pill);
+  }
 }
 
 /** 构建整张表：5 行年 + 12 行月日，共用一个 32 列网格保证上下对齐 */
@@ -346,8 +385,8 @@ function showOnboarding() {
   $('ob-submit').textContent = t('ob.submit');
   const input = $('ob-birthdate');
   const now = new Date();
-  input.max = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  input.min = '1900-01-01';
+  input.max = `${now.getFullYear()}-12-31`;
+  input.min = '1949-01-01';
   setTimeout(() => input.focus(), 50);
 }
 
@@ -363,13 +402,27 @@ function bindEvents() {
     renderPage();
   });
 
+  // 语言切换
+  $('lang-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleLangMenu();
+  });
+  document.addEventListener('click', (e) => {
+    if (!$('lang-menu').contains(e.target) && e.target !== $('lang-btn')) {
+      closeLangMenu();
+    }
+  });
+
   // 设置入口：打开悬浮弹窗
   $('settings-btn').addEventListener('click', openSettingsModal);
   $('settings-overlay').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeSettingsModal();
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeSettingsModal();
+    if (e.key === 'Escape') {
+      closeSettingsModal();
+      closeLangMenu();
+    }
   });
 
   // 设置页修改后实时套用
@@ -388,6 +441,54 @@ function bindEvents() {
   });
 }
 
+/* ---------- 语言切换 ---------- */
+
+function buildLangMenu() {
+  const menu = $('lang-menu');
+  const active = getLanguage();
+  menu.innerHTML = '';
+  for (const lang of LANGUAGES) {
+    const btn = document.createElement('button');
+    btn.className = 'lang-option';
+    btn.setAttribute('role', 'menuitemradio');
+    btn.setAttribute('aria-checked', lang.id === active ? 'true' : 'false');
+    btn.dataset.lang = lang.id;
+    btn.innerHTML = `<span>${escapeHtml(lang.name)}</span><svg class="check" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+    btn.addEventListener('click', () => changeLanguage(lang.id));
+    menu.appendChild(btn);
+  }
+}
+
+function toggleLangMenu() {
+  const menu = $('lang-menu');
+  const expanded = menu.hidden;
+  menu.hidden = !expanded;
+  $('lang-btn').setAttribute('aria-expanded', String(expanded));
+}
+
+function closeLangMenu() {
+  $('lang-menu').hidden = true;
+  $('lang-btn').setAttribute('aria-expanded', 'false');
+}
+
+async function changeLanguage(lang) {
+  if (lang === settings.language) {
+    closeLangMenu();
+    return;
+  }
+  settings = await saveSettings({ language: lang });
+  setLanguage(lang);
+  buildLangMenu();
+  applyTheme(settings.theme);
+  if (parseISODate(settings.birthdate)) renderPage();
+  else showOnboarding();
+  closeLangMenu();
+}
+
+function escapeHtml(str) {
+  return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
 /* ---------- 设置悬浮弹窗 ---------- */
 
 let settingsMounted = false;
@@ -397,8 +498,11 @@ function openSettingsModal() {
   if (!settingsMounted) {
     settingsMounted = true;
     mountSettings($('settings-root'), {
-      showCloseButton: true,
       onClose: closeSettingsModal,
+      onReOnboard: () => {
+        closeSettingsModal();
+        showOnboarding();
+      },
       onSaved: (next) => {
         // 保存后实时套用（扩展环境下 storage.onChanged 也会触发，二者幂等）
         settings = next;
@@ -406,6 +510,10 @@ function openSettingsModal() {
         applyTheme(settings.theme);
         if (parseISODate(settings.birthdate)) renderPage();
       },
+    });
+    // 点击遮罩（弹窗之外的区域）关闭
+    $('settings-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeSettingsModal();
     });
   }
 }

@@ -26,6 +26,7 @@
 - 预制主题只读；「另存为」= 深拷贝数据为自定义主题
 - 上传背景图：canvas 压缩（1920px/JPEG 0.72）→ `chrome.storage.local`（sync 单项 8KB 放不下）；主题定义里只存引用 id
 - 毛玻璃：`settings.glass`（0-100，50=原始）在 buildThemeCSS 内调整各 alpha + `.card` 的 backdrop-filter
+- 背景图纱罩：有背景图时 buildThemeCSS 输出全页 `body::before` 纱罩（主题 `pageBg` 色），浓度取 `theme.bgVeil`（0~1），缺省按底色明暗推导（深 0.6 / 浅 0.8），上传图同管线自动生效；`overlay` 仅为可选的顶部渐变（`body::after`）
 - **配色约定：从主题背景画作中取色**，用 `xcrun swift tools/extract-colors.swift` 提取，不要从通用色卡找近似色
 
 ### 存储

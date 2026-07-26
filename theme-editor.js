@@ -54,7 +54,7 @@ export function openThemeEditor({ draft, onSave, onCancel }) {
       <div class="te-body">
         <div class="te-field">
           <label class="te-label">${t('te.name')}</label>
-          <input class="sp-input" type="text" data-te="name" maxlength="12">
+          <input class="sp-input" type="text" data-te="name" maxlength="6">
         </div>
 
         <div class="te-field">
