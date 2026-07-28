@@ -17,12 +17,12 @@
 ### 主题系统（数据驱动，勿回退到静态 CSS 文件）
 
 ```
-主题数据（lib/theme-presets.js 预设 / settings.customThemes 自定义）
-  → lib/theme-css.js buildThemeCSS(theme, bgUrl, glass) 生成 CSS 文本
+主题数据（src/lib/theme-presets.js 预设 / settings.customThemes 自定义）
+  → src/lib/theme-css.js buildThemeCSS(theme, bgUrl, glass) 生成 CSS 文本
   → newtab.js 注入 <style id="theme-style">
 ```
 
-- 格子装饰图形（灯泡/浪花/禾苗/音符）是 `lib/glyphs.js` 的参数化 SVG，按颜色生成 data-URI
+- 格子装饰图形（灯泡/浪花/禾苗/音符）是 `src/lib/glyphs.js` 的参数化 SVG，按颜色生成 data-URI
 - 预制主题只读；「另存为」= 深拷贝数据为自定义主题
 - 上传背景图：canvas 压缩（1920px/JPEG 0.72）→ `chrome.storage.local`（sync 单项 8KB 放不下）；主题定义里只存引用 id
 - 毛玻璃：`settings.glass`（0-100，50=原始）在 buildThemeCSS 内调整各 alpha + `.card` 的 backdrop-filter
@@ -31,15 +31,15 @@
 
 ### 存储
 
-- 单一 key `settings` 存整个配置对象（见 `lib/constants.js` DEFAULT_SETTINGS）
-- `lib/storage.js` 在无扩展环境降级 localStorage，因此可以用普通 HTTP 服务预览调试
+- 单一 key `settings` 存整个配置对象（见 `src/lib/constants.js` DEFAULT_SETTINGS）
+- `src/lib/storage.js` 在无扩展环境降级 localStorage，因此可以用普通 HTTP 服务预览调试
 - dev URL 参数（仅非扩展环境生效）：`?birthdate= &nickname= &theme= &today= &year= &settings=open &editor=new &lang= &glass= &bg=0 &ct=1 &bgtest=1 &ms=`
 
 ### i18n
 
-- `lib/i18n.js` 集中语言包（简中/繁中/日/韩/英），UI 文本一律 `t('key')`，禁止在页面/组件里写死文本
+- `src/lib/i18n.js` 集中语言包（简中/繁中/日/韩/英），UI 文本一律 `t('key')`，禁止在页面/组件里写死文本
 - 新增 UI 文本 = 在 STRINGS 加 5 语言条目
-- 例外：名言（lib/quotes.js）与历史事件（lib/history.js）是内容数据，保持中文原文
+- 例外：名言（src/lib/quotes.js）与历史事件（src/lib/history.js）是内容数据，保持中文原文
 
 ## 工作流
 

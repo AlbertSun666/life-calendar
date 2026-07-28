@@ -11,20 +11,26 @@ OUT="life-calendar-v${VERSION}.zip"
 # 生成文件列表（git 已有跟踪的运行时文件 + 显式排除开发文件）
 FILES=(
   manifest.json
-  newtab.html newtab.css newtab.js
-  options.html options.css options.js
-  settings-panel.css settings-panel.js
-  theme-editor.js
-  lib/constants.js
-  lib/date.js
-  lib/glyphs.js
-  lib/history.js
-  lib/i18n.js
-  lib/icons.js
-  lib/quotes.js
-  lib/storage.js
-  lib/theme-css.js
-  lib/theme-presets.js
+  newtab.html
+  options.html
+  privacy.html
+  src/newtab.css
+  src/newtab.js
+  src/options.css
+  src/options.js
+  src/settings-panel.css
+  src/settings-panel.js
+  src/theme-editor.js
+  src/lib/constants.js
+  src/lib/date.js
+  src/lib/glyphs.js
+  src/lib/history.js
+  src/lib/i18n.js
+  src/lib/icons.js
+  src/lib/quotes.js
+  src/lib/storage.js
+  src/lib/theme-css.js
+  src/lib/theme-presets.js
   assets/parasol.jpg
   assets/starry.jpg
   assets/wave.jpg

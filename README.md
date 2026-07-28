@@ -2,7 +2,7 @@
 
 把一生画成一张表的浏览器扩展（Chrome / Edge，Manifest V3）：上半部分是 80 年的年格，下半部分是今年的逐日格。灰色的是已经走过的日子，空白的是还剩下的生命。
 
-![深水潜流主题](docs/screenshot.jpg)
+![深水潜流主题](docs/screenshots/screenshot.jpg)
 
 ## 功能
 
@@ -29,13 +29,13 @@
 ## 安装
 
 1. `chrome://extensions`（Edge 为 `edge://extensions`）→ 开启「开发者模式」
-2. 「加载已解压的扩展程序」→ 选择本目录
+2. 「加载已解包的扩展程序」→ 选择本目录
 3. 打开新标签页，首次使用选择出生日期即可
 
 ## 技术
 
 - 零依赖零构建：原生 HTML/CSS/JS（ES Modules），Manifest V3
-- 主题系统数据驱动：`lib/theme-presets.js`（数据）→ `lib/theme-css.js`（生成 CSS）→ 动态注入
+- 主题系统数据驱动：`src/lib/theme-presets.js`（数据）→ `src/lib/theme-css.js`（生成 CSS）→ 动态注入
 - 存储分层：配置走 `chrome.storage.sync`（随账号同步）；自定义背景图压缩后存 `chrome.storage.local`（仅本机，sync 的 8KB 单项限额放不下图片）
 - 无后端、无网络请求、无跟踪
 
@@ -47,12 +47,18 @@
 
 ```
 ├── manifest.json          # MV3 清单（新标签页覆盖 + 设置页）
-├── newtab.html/css/js     # 主界面
-├── options.html/css/js    # 设置页（复用设置面板组件）
-├── settings-panel.js/css  # 设置面板组件（弹窗与设置页共用）
-├── theme-editor.js        # 主题编辑器
-├── lib/                   # 常量/日期/存储/主题/图形/图标/i18n/名言/历史
+├── newtab.html            # 主界面入口
+├── options.html           # 设置页入口
+├── privacy.html           # 隐私政策（CWS 提交用）
+├── src/                   # 源码（JS/CSS）
+│   ├── newtab.*           # 主界面
+│   ├── options.*          # 设置页
+│   ├── settings-panel.*   # 设置面板组件（弹窗与设置页共用）
+│   ├── theme-editor.js    # 主题编辑器
+│   └── lib/               # 常量/日期/存储/主题/图形/图标/i18n/名言/历史
 ├── assets/                # 四幅公有领域画作（已压缩）
 ├── icons/                 # 扩展图标
-└── tools/                 # 取色脚本（xcrun swift tools/extract-colors.swift）
+├── docs/                  # 设计契约 + 截图
+├── tools/                 # 取色脚本 / 图标源
+└── scripts/               # 打包脚本（scripts/package.sh）
 ```

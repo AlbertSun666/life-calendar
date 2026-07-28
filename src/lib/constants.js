@@ -20,7 +20,7 @@ export const DEFAULT_SETTINGS = {
   milestones: [],        // [{ id, month, day, year|null(每年), icon, label }]
 };
 
-// 里程碑图标枚举（内联 SVG 定义在 lib/icons.js，显示名见 lib/i18n.js 的 icon.* 键）
+// 里程碑图标枚举（内联 SVG 定义在 src/lib/icons.js，显示名见 src/lib/i18n.js 的 icon.* 键）
 export const MILESTONE_ICONS = ['cake', 'rings', 'flag', 'star', 'heart'];
 
 // storage.sync 单项上限 8KB，里程碑数量留个安全上限

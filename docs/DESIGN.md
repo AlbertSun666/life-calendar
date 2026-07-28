@@ -19,7 +19,7 @@
 
 ## 2. 色彩系统
 
-所有颜色通过主题数据对象定义，由 `lib/theme-css.js` 的 `buildThemeCSS()` 函数
+所有颜色通过主题数据对象定义，由 `src/lib/theme-css.js` 的 `buildThemeCSS()` 函数
 生成 CSS 自定义属性并注入 `<style id="theme-style">`。组件样式引用变量，不写死 hex。
 
 | CSS 变量 | 职责 |
@@ -186,7 +186,7 @@
 11 个颜色字段 + 今天格光晕开关 / 4 个不透明度滑杆。保存时自动将上传图写入
 `chrome.storage.local`。
 
-## 6. 装饰图形（来自 lib/glyphs.js）
+## 6. 装饰图形（来自 src/lib/glyphs.js）
 
 装饰图形是参数化 SVG，按颜色生成 data-URI 注入 `--glyph-*` CSS 变量。日格自动显示，
 无需 DOM 操作。`today` 状态可使用填充变体（如灯泡点亮）。
@@ -201,8 +201,8 @@
 主题系统采用**数据驱动管线**，不使用静态 CSS 文件或 `[data-theme]` 属性选择器：
 
 ```
-主题数据对象（lib/theme-presets.js 预制 / settings.customThemes 自定义）
-  → lib/theme-css.js buildThemeCSS(theme, bgUrl, glass) 生成完整 CSS 文本
+主题数据对象（src/lib/theme-presets.js 预制 / settings.customThemes 自定义）
+  → src/lib/theme-css.js buildThemeCSS(theme, bgUrl, glass) 生成完整 CSS 文本
   → 注入 <style id="theme-style">，覆盖 :root 下所有变量
 ```
 
