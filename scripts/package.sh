@@ -13,7 +13,6 @@ FILES=(
   manifest.json
   newtab.html
   options.html
-  privacy.html
   src/newtab.css
   src/newtab.js
   src/options.css

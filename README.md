@@ -58,7 +58,8 @@
 │   └── lib/               # 常量/日期/存储/主题/图形/图标/i18n/名言/历史
 ├── assets/                # 四幅公有领域画作（已压缩）
 ├── icons/                 # 扩展图标
-├── docs/                  # 设计契约 + 截图
+├── docs/                  # 设计契约 + 文档截图
+├── store/                 # Chrome Web Store 商店截图（非运行时资源）
 ├── tools/                 # 取色脚本 / 图标源
 └── scripts/               # 打包脚本（scripts/package.sh）
 ```
