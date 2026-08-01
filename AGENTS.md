@@ -33,7 +33,7 @@
 
 - 单一 key `settings` 存整个配置对象（见 `src/lib/constants.js` DEFAULT_SETTINGS）
 - `src/lib/storage.js` 在无扩展环境降级 localStorage，因此可以用普通 HTTP 服务预览调试
-- dev URL 参数（仅非扩展环境生效）：`?birthdate= &nickname= &theme= &today= &year= &settings=open &editor=new &lang= &glass= &bg=0 &ct=1 &bgtest=1 &ms=`
+- dev URL 参数（仅非扩展环境生效，服务截图验证工作流）：`?birthdate= &nickname= &theme= &today= &settings=open &editor=new &lang= &tz= &numbers=0 &glass= &bg=0 &ct=1 &bgtest=1 &ms=`
 
 ### i18n
 

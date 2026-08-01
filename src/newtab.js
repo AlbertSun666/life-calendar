@@ -23,6 +23,9 @@ import { LANGUAGES, getLanguage, setLanguage, t, currentLocale, monthName, month
 
 const $ = (id) => document.getElementById(id);
 
+// 开发预览（无扩展环境）判定：?today= 模拟日期、?settings=open 开弹窗，服务截图验证工作流
+const IS_DEV = typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.sync;
+
 let settings = null;
 let todayKey = ''; // 当前渲染所用的「今天」，用于跨天检测
 let viewYear = null; // 月份网格当前查看的年份；null = 今年
@@ -43,23 +46,14 @@ async function init() {
 
   bindEvents();
 
-  // 开发预览：?settings=open 直接打开设置弹窗；?year=2022 切换年份视图；?lang=open 展开语言菜单
-  if (IS_DEV) {
-    const params = new URLSearchParams(location.search);
-    if (params.get('settings') === 'open') openSettingsModal();
-    if (params.get('lang') === 'open') setTimeout(toggleLangMenu, 500);
-    const devYear = Number(params.get('year'));
-    if (devYear >= 1900 && devYear <= 2200) {
-      viewYear = devYear;
-      if (parseISODate(settings.birthdate)) renderPage();
-    }
+  // 开发预览：?settings=open 直接打开设置弹窗（无头截图无法点击，以此截取弹窗态）
+  if (IS_DEV && new URLSearchParams(location.search).get('settings') === 'open') {
+    openSettingsModal();
   }
 }
 
-// 开发预览（无扩展环境）下支持 ?today=YYYY-MM-DD 模拟任意日期
-const IS_DEV = typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.sync;
-
 function resolveToday() {
+  // ?today=YYYY-MM-DD 模拟任意日期（仅开发预览生效）
   if (IS_DEV) {
     const parsed = parseISODate(new URLSearchParams(location.search).get('today'));
     if (parsed) return parsed;
