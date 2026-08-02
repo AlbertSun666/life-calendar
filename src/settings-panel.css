@@ -301,6 +301,52 @@ input[type="date"].sp-input {
 }
 .sp-ms-row:last-child { border-bottom: none; }
 
+/* A4：达成勾选框 */
+.sp-ms-done {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.sp-ms-done input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1.5px solid var(--panel-line, #c8c8c5);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.15s, background 0.15s;
+}
+.sp-ms-done input:checked {
+  border-color: var(--accent, #1f1f1f);
+  background: var(--accent, #1f1f1f);
+}
+.sp-ms-done input:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--accent-on, #ffffff);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+/* A4：达成态——文字删除线 + 淡化，强化"已完成"的仪式感 */
+.sp-ms-row.done .sp-ms-label {
+  text-decoration: line-through;
+  color: var(--muted, #8b8b8b);
+  opacity: 0.7;
+}
+.sp-ms-row.done .sp-ms-icon {
+  opacity: 0.55;
+}
+
 .sp-ms-date {
   width: 96px;
   flex: none;

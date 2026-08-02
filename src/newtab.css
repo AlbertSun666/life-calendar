@@ -142,6 +142,26 @@ html, body {
   opacity: 0.7;
 }
 
+/* B7：生日 / 新年仪式文案（统计行下方，accent 色，比倒计时更突出） */
+.ritual {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+  text-wrap: balance;
+  opacity: 0.9;
+}
+
+/* B6：同龄人名人对照（统计行下方，柔化文字，比倒计时更弱） */
+.notable {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+  opacity: 0.85;
+}
+
 /* 每日一句：主题色的柔和变体 */
 .quote {
   margin: 10px 0 0;
@@ -519,11 +539,38 @@ html, body {
   box-shadow: var(--today-glow);
 }
 
+/* B7：生日当天——accent 光晕增强，每年一次的安静仪式 */
+.cell.day.birthday {
+  animation: birthday-glow 2.4s ease-in-out infinite;
+}
+@keyframes birthday-glow {
+  0%, 100% { box-shadow: var(--today-glow), 0 0 0 2px var(--accent); }
+  50%      { box-shadow: var(--today-glow), 0 0 10px 2px var(--accent); }
+}
+
+/* B7：1 月 1 日「这一年的第一格」——细微 accent 描边 */
+.cell.day.newyear {
+  outline: 1.5px solid var(--accent);
+  outline-offset: -1.5px;
+}
+
 /* 里程碑格子：隐藏主题底纹，改由 .ms-icon 显示图标 */
 .cell.milestone {
   --glyph-past: none;
   --glyph-future: none;
   --glyph-today: none;
+}
+
+/* A4：达成态——未完成空色 → 达成亮色，描边强化"已完成"的仪式感 */
+.cell.day.milestone-done {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.cell.day.milestone-done .ms-icon {
+  opacity: 1;
+}
+/* 未达成时图标半透明，暗示"待完成" */
+.cell.day.milestone:not(.milestone-done) .ms-icon {
+  opacity: 0.6;
 }
 
 .ms-icon {
@@ -548,7 +595,12 @@ html, body {
   height: 5px;
   border-radius: 50%;
   background: var(--accent);
-  opacity: 0.85;
+  opacity: 0.5;
+}
+/* A4：该年里程碑全部达成——实心点亮 */
+.ms-dot.done {
+  opacity: 1;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.25);
 }
 
 /* 关闭数字显示：隐藏日期格子与月份角标的数字，年份数字与月名常显 */
@@ -710,6 +762,47 @@ body[data-glyph='none'] .cell.day.milestone .num {
   transition: opacity 0.15s;
 }
 .ob-submit:hover { opacity: 0.85; }
+
+/* H1：演示模式按钮——弱化的次级按钮 */
+.ob-demo-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 0;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+  background: transparent;
+  color: #8a8a8a;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.ob-demo-btn:hover {
+  border-color: #b0b0b0;
+  color: #5a5a5a;
+}
+
+/* H1：演示模式返回按钮浮层——固定在页面底部 */
+.ob-preview-back-wrap {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+}
+.ob-preview-back {
+  padding: 10px 28px;
+  border: none;
+  border-radius: 24px;
+  background: var(--accent, #1f1f1f);
+  color: var(--accent-on, #ffffff);
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.15s;
+}
+.ob-preview-back:hover { opacity: 0.85; }
 
 /* ---------- 设置悬浮弹窗 ---------- */
 
@@ -874,10 +967,12 @@ body[data-glyph='none'] .cell.day.milestone .num {
     print-color-adjust: exact;
   }
 
-  /* 隐藏无关元素：主题栏、语言/设置按钮、遮罩弹窗、倒计时、每日一句/历史 */
+  /* 隐藏无关元素：主题栏、语言/设置按钮、遮罩弹窗、倒计时、仪式文案、每日一句/历史 */
   .theme-bar,
   .header-actions,
   .countdown,
+  .ritual,
+  .notable,
   .quote,
   .history,
   .settings-overlay,

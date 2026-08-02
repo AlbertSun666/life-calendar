@@ -97,6 +97,34 @@ const STRINGS = {
     ko: '{lived}일 지남 · {remaining}일 남음 · 인생의 {percent}%',
     en: '{lived} days lived · {remaining} days left · {percent}% of life',
   },
+  // G1：统计单位切换——周 / 月
+  'stats.line.week': {
+    'zh-CN': '已度过 {lived} 周 · 剩余 {remaining} 周 · 生命进度 {percent}%',
+    'zh-TW': '已度過 {lived} 週 · 剩餘 {remaining} 週 · 生命進度 {percent}%',
+    ja: '{lived} 週を過ごしました · 残り {remaining} 週 · 人生の {percent}%',
+    ko: '{lived}주 지남 · {remaining}주 남음 · 인생의 {percent}%',
+    en: '{lived} weeks lived · {remaining} weeks left · {percent}% of life',
+  },
+  'stats.line.month': {
+    'zh-CN': '已度过 {lived} 月 · 剩余 {remaining} 月 · 生命进度 {percent}%',
+    'zh-TW': '已度過 {lived} 月 · 剩餘 {remaining} 月 · 生命進度 {percent}%',
+    ja: '{lived} か月を過ごしました · 残り {remaining} か月 · 人生の {percent}%',
+    ko: '{lived}개월 지남 · {remaining}개월 남음 · 인생의 {percent}%',
+    en: '{lived} months lived · {remaining} months left · {percent}% of life',
+  },
+  // G1：设置面板单位下拉标签
+  'sp.statsUnit': {
+    'zh-CN': '统计单位', 'zh-TW': '統計單位', ja: '統計単位', ko: '통계 단위', en: 'Stats unit',
+  },
+  'sp.unitDay': {
+    'zh-CN': '天', 'zh-TW': '天', ja: '日', ko: '일', en: 'Days',
+  },
+  'sp.unitWeek': {
+    'zh-CN': '周', 'zh-TW': '週', ja: '週', ko: '주', en: 'Weeks',
+  },
+  'sp.unitMonth': {
+    'zh-CN': '月', 'zh-TW': '月', ja: 'か月', ko: '개월', en: 'Months',
+  },
   'age.short': {
     'zh-CN': '{age} 岁', 'zh-TW': '{age} 歲', ja: '{age}歳', ko: '{age}세', en: '{age} y/o',
   },
@@ -132,6 +160,20 @@ const STRINGS = {
   },
   'ob.submit': {
     'zh-CN': '开始', 'zh-TW': '開始', ja: 'はじめる', ko: '시작', en: 'Begin',
+  },
+  // H1：演示模式
+  'ob.demo': {
+    'zh-CN': '先看看效果', 'zh-TW': '先看看效果', ja: 'まず見てみる', ko: '먼저 둘러보기', en: 'See it first',
+  },
+  'ob.demoNote': {
+    'zh-CN': '这是示例：1990 年出生的人的人生表',
+    'zh-TW': '這是示例：1990 年出生的人的人生表',
+    ja: 'これは例：1990 年生まれの人の人生表',
+    ko: '예시: 1990년생의 인생 표',
+    en: 'Example: life table of someone born in 1990',
+  },
+  'ob.demoBack': {
+    'zh-CN': '返回填写', 'zh-TW': '返回填寫', ja: '戻る', ko: '돌아가기', en: 'Back',
   },
   'settings.aria': {
     'zh-CN': '设置', 'zh-TW': '設定', ja: '設定', ko: '설정', en: 'Settings',
@@ -270,6 +312,15 @@ const STRINGS = {
   'csv.yearly': {
     'zh-CN': '是', 'zh-TW': '是', ja: '毎年', ko: '예', en: 'Yes',
   },
+  'csv.done': {
+    'zh-CN': '已达成', 'zh-TW': '已達成', ja: '達成', ko: '달성', en: 'Done',
+  },
+  'csv.yes': {
+    'zh-CN': '是', 'zh-TW': '是', ja: 'はい', ko: '예', en: 'Yes',
+  },
+  'csv.no': {
+    'zh-CN': '否', 'zh-TW': '否', ja: 'いいえ', ko: '아니오', en: 'No',
+  },
   'sp.newTheme': {
     'zh-CN': '+ 新建主题', 'zh-TW': '+ 新增主題', ja: '＋ 新規テーマ', ko: '+ 새 테마', en: '+ New theme',
   },
@@ -373,6 +424,10 @@ const STRINGS = {
   },
   'sp.msAdd': {
     'zh-CN': '添加', 'zh-TW': '新增', ja: '追加', ko: '추가', en: 'Add',
+  },
+  // A4：里程碑达成标记
+  'sp.msDone': {
+    'zh-CN': '已达成', 'zh-TW': '已達成', ja: '達成済み', ko: '달성됨', en: 'Done',
   },
   'ms.yearly': {
     'zh-CN': '每年 {month}月{day}日', 'zh-TW': '每年 {month}月{day}日', ja: '毎年 {month}月{day}日', ko: '매년 {month}월 {day}일', en: 'Every year, {month}/{day}',
@@ -601,6 +656,31 @@ const STRINGS = {
   },
   'countdown.today': {
     'zh-CN': '今天是「{label}」', 'zh-TW': '今天是「{label}」', ja: '今日は「{label}」', ko: '오늘은 「{label}」', en: 'Today is "{label}"',
+  },
+
+  // B7：生日 / 新年特别呈现文案
+  'ritual.birthday': {
+    'zh-CN': '生日快乐 · 人生的第 {age} 年',
+    'zh-TW': '生日快樂 · 人生的第 {age} 年',
+    ja: 'お誕生日おめでとう · 人生の第 {age} 年',
+    ko: '생일 축하 · 인생의 {age}번째 해',
+    en: 'Happy Birthday · year {age} of your life',
+  },
+  'ritual.newyear': {
+    'zh-CN': '这一年的第一格',
+    'zh-TW': '這一年的第一格',
+    ja: '今年の最初のマス',
+    ko: '올해의 첫 번째 칸',
+    en: 'The first square of the year',
+  },
+
+  // B6：同龄人名人对照
+  'notable.line': {
+    'zh-CN': '{age} 岁的{name}，{event}',
+    'zh-TW': '{age} 歲的{name}，{event}',
+    ja: '{age}歳の{name}、{event}',
+    ko: '{age}세의 {name}, {event}',
+    en: 'At {age}, {name}: {event}',
   },
 
   // F-07：生命阶段名

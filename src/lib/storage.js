@@ -158,7 +158,7 @@ function appVersion() {
   } catch {
     // 忽略，回退默认
   }
-  return '0.5.0';
+  return '0.6.0';
 }
 
 /** 导入：校验 JSON 结构与大小，覆盖式写入设置与背景图。

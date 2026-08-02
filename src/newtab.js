@@ -16,8 +16,9 @@ import {
 } from './lib/date.js';
 import { createMilestoneIcon } from './lib/icons.js';
 import { glyphDataURI } from './lib/glyphs.js';
-import { QUOTES } from './lib/quotes.js';
-import { HISTORY } from './lib/history.js';
+import { QUOTES, quoteOfDay } from './lib/quotes.js';
+import { HISTORY, historyForLang } from './lib/history.js';
+import { notableOfDay } from './lib/notables.js';
 import { mountSettings } from './settings-panel.js';
 import { LANGUAGES, getLanguage, setLanguage, t, currentLocale, monthName, monthNameVertical } from './lib/i18n.js';
 
@@ -30,6 +31,7 @@ let settings = null;
 let todayKey = ''; // 当前渲染所用的「今天」，用于跨天检测
 let viewYear = null; // 月份网格当前查看的年份；null = 今年
 let obPreviewTheme = 'default'; // F-11：引导卡预览中的选中主题
+let realSettingsSnapshot = null; // H1：演示模式临时替换 settings 时的真实快照
 
 init();
 
@@ -131,11 +133,27 @@ function renderPage() {
   const stats = lifeStats(birth, today);
   // 数字用 .num 包裹以便主题色凸显（值为自生成数字，无注入风险）
   const num = (v) => `<b class="num">${v}</b>`;
-  $('stats').innerHTML = t('stats.line', {
-    lived: num(formatNumber(stats.lived, currentLocale())),
-    remaining: num(formatNumber(stats.remaining, currentLocale())),
-    percent: num(stats.percent.toFixed(1)),
-  });
+  // G1：统计单位切换——天/周/月，只动统计行不动网格签名
+  const unit = settings.statsUnit || 'day';
+  if (unit === 'week') {
+    $('stats').innerHTML = t('stats.line.week', {
+      lived: num(formatNumber(Math.floor(stats.lived / 7), currentLocale())),
+      remaining: num(formatNumber(Math.floor(stats.remaining / 7), currentLocale())),
+      percent: num(stats.percent.toFixed(1)),
+    });
+  } else if (unit === 'month') {
+    $('stats').innerHTML = t('stats.line.month', {
+      lived: num(formatNumber(Math.floor(stats.lived / 30.4375), currentLocale())),
+      remaining: num(formatNumber(Math.floor(stats.remaining / 30.4375), currentLocale())),
+      percent: num(stats.percent.toFixed(1)),
+    });
+  } else {
+    $('stats').innerHTML = t('stats.line', {
+      lived: num(formatNumber(stats.lived, currentLocale())),
+      remaining: num(formatNumber(stats.remaining, currentLocale())),
+      percent: num(stats.percent.toFixed(1)),
+    });
+  }
 
   // 设置按钮的无障碍标签随语言
   $('settings-btn').setAttribute('aria-label', t('settings.aria'));
@@ -149,6 +167,8 @@ function renderPage() {
   buildGrid(birth, today);
   renderDaily(today);
   renderCountdown(birth, today);
+  renderRitual(birth, today);
+  renderNotable(birth, today);
 
   $('onboarding').hidden = true;
   $('page').hidden = false;
@@ -223,15 +243,16 @@ function buildYearCells(grid, birth, today, year) {
       cell.appendChild(bar);
     }
 
-    // 该年含一次性里程碑时，在角落标一个小点
-    const hasMilestone = settings.milestones.some((m) => m.year === y);
-    if (hasMilestone) {
+    // 该年含一次性里程碑时，在角落标一个小点（A4：该年全部达成用实心点）
+    const yearMss = settings.milestones.filter((m) => m.year === y);
+    if (yearMss.length > 0) {
+      const allDone = yearMss.every((m) => m.done);
       const dot = document.createElement('span');
-      dot.className = 'ms-dot';
+      dot.className = 'ms-dot' + (allDone ? ' done' : '');
       cell.appendChild(dot);
     }
     cell.title =
-      t('year.tip', { year: y, age: y - birth.year }) + (hasMilestone ? t('year.marked') : '');
+      t('year.tip', { year: y, age: y - birth.year }) + (yearMss.length > 0 ? t('year.marked') : '');
 
     // 点击切换下方月份网格展示的年份；再次点击（或点今年）回到今年
     cell.addEventListener('click', () => switchYear(y, year, birth, today));
@@ -332,7 +353,13 @@ function buildMonthRows(grid, today, year) {
       else {
         const cmp = compareYMD({ year, month, day }, today);
         if (cmp < 0) cell.classList.add('past');
-        else if (cmp === 0) cell.classList.add('today');
+        else if (cmp === 0) {
+          cell.classList.add('today');
+          // B7：生日当天今天格增强 accent 光晕
+          if (birth.month === month && birth.day === day) cell.classList.add('birthday');
+          // B7：1 月 1 日「这一年的第一格」
+          if (month === 1 && day === 1) cell.classList.add('newyear');
+        }
       }
 
       const num = document.createElement('span');
@@ -344,8 +371,11 @@ function buildMonthRows(grid, today, year) {
 
       const milestones = findMilestones(month, day, year);
       if (milestones.length > 0) {
+        const ms = milestones[0];
         cell.classList.add('milestone');
-        cell.appendChild(createMilestoneIcon(milestones[0].icon));
+        // A4：达成态——达成格不再着色为未完成空色，而是亮 accent 描边
+        if (ms.done) cell.classList.add('milestone-done');
+        cell.appendChild(createMilestoneIcon(ms.icon));
       }
 
       grid.appendChild(cell);
@@ -430,7 +460,7 @@ function buildDayTitle(year, month, day) {
     lines.push(milestones.map((m) => m.label || t('day.milestone')).join('、'));
   }
 
-  const events = HISTORY.filter((e) => e.m === month && e.d === day);
+  const events = historyForLang(getLanguage()).filter((e) => e.m === month && e.d === day);
   for (const e of events) {
     lines.push(yearLabel(e.y) + e.t);
   }
@@ -441,11 +471,11 @@ function buildDayTitle(year, month, day) {
 /* ---------- 每日一句 / 历史上的今天 ---------- */
 
 function renderDaily(today) {
-  // 每日一句：按「一年中的第几天」取模轮换
+  // 每日一句：按「一年中的第几天」取模轮换（B4：按当前语言取当地名言池）
   const quoteEl = $('quote');
   if (settings.showQuote) {
     const dayOfYear = diffDays({ year: today.year, month: 1, day: 1 }, today);
-    const quote = QUOTES[dayOfYear % QUOTES.length];
+    const quote = quoteOfDay(getLanguage(), dayOfYear);
     $('quote-text').textContent = quote.text;
     $('quote-author').textContent = `—— ${quote.author}`;
     quoteEl.hidden = false;
@@ -453,11 +483,11 @@ function renderDaily(today) {
     quoteEl.hidden = true;
   }
 
-  // 历史上的今天：无事件的日期自动隐藏；标签文字随界面语言
+  // 历史上的今天：无事件的日期自动隐藏；B5 按当前语言取当地事件池
   const historyEl = $('history');
   document.documentElement.style.setProperty('--history-tag', `"${t('history.tag')}"`);
   if (settings.showHistory) {
-    const events = HISTORY.filter((e) => e.m === today.month && e.d === today.day);
+    const events = historyForLang(getLanguage()).filter((e) => e.m === today.month && e.d === today.day);
     if (events.length > 0) {
       historyEl.textContent = events.map((e) => yearLabel(e.y) + e.t).join('；');
       historyEl.hidden = false;
@@ -530,6 +560,42 @@ function renderCountdown(birth, today) {
     }
   }
   el.hidden = false;
+}
+
+/* ---------- B7：生日 / 新年特别呈现 ---------- */
+
+/** 生日当天与 1 月 1 日在统计行下方显示专属文案，每年一次的安静仪式 */
+function renderRitual(birth, today) {
+  const el = $('ritual');
+  const isBirthday = birth.month === today.month && birth.day === today.day;
+  const isNewYear = today.month === 1 && today.day === 1;
+  if (isBirthday) {
+    const age = today.year - birth.year;
+    el.textContent = t('ritual.birthday', { age });
+    el.hidden = false;
+  } else if (isNewYear) {
+    el.textContent = t('ritual.newyear');
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+  }
+}
+
+/* ---------- B6：同龄人名人对照 ---------- */
+
+/** 统计行下方一行：按用户当前年龄匹配名人当年事件，每日轮换 */
+function renderNotable(birth, today) {
+  const el = $('notable');
+  const age = today.year - birth.year;
+  const dayOfYear = diffDays({ year: today.year, month: 1, day: 1 }, today);
+  const notable = notableOfDay(getLanguage(), age, dayOfYear);
+  if (notable) {
+    el.textContent = t('notable.line', { age: notable.age, name: notable.name, event: notable.event });
+    el.title = notable.source ? `${notable.name} · ${notable.year} · 来源：${notable.source}` : '';
+    el.hidden = false;
+  } else {
+    el.hidden = true;
+  }
 }
 
 /* ---------- F-08：年度复盘卡 ---------- */
@@ -636,6 +702,7 @@ function showOnboarding() {
   $('ob-desc').textContent = t('ob.desc');
   $('ob-label').textContent = t('ob.birthdate');
   $('ob-submit').textContent = t('ob.submit');
+  $('ob-demo-btn').textContent = t('ob.demo');
   const input = $('ob-birthdate');
   const now = new Date();
   input.max = `${now.getFullYear()}-12-31`;
@@ -650,7 +717,55 @@ function showOnboarding() {
   // F-11：时区提示——检测浏览器时区，温和提醒可在设置中修改
   buildObTzHint();
 
+  // H1：演示模式——点击「先看看效果」渲染示例网格，不写入存储
+  $('ob-preview').hidden = true;
+  $('ob-form').hidden = false;
+
   setTimeout(() => input.focus(), 50);
+}
+
+/* ---------- H1：演示模式 ---------- */
+
+/** 用示例生日（1990-06-15）渲染一张静态人生表预览，不写入存储，点返回回引导表单。
+ *  借用主页 #page 渲染链路（主题/网格/统计），但用临时 settings，返回后恢复——零存储副作用。 */
+function showDemoPreview() {
+  $('onboarding').hidden = true;
+  $('ob-preview-back-wrap')?.remove();
+  // 返回按钮浮在页面底部
+  const backWrap = document.createElement('div');
+  backWrap.id = 'ob-preview-back-wrap';
+  backWrap.className = 'ob-preview-back-wrap';
+  const backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.className = 'ob-preview-back';
+  backBtn.textContent = t('ob.demoBack');
+  backBtn.addEventListener('click', () => {
+    backWrap.remove();
+    // 恢复真实 settings 与主题
+    settings = realSettingsSnapshot;
+    if (parseISODate(settings.birthdate)) renderPage();
+    else showOnboarding();
+  });
+  backWrap.appendChild(backBtn);
+  document.body.appendChild(backWrap);
+
+  // 快照真实 settings，临时替换为演示 settings（不写入存储）
+  const demoSettings = {
+    ...settings,
+    birthdate: '1990-06-15',
+    nickname: '',
+    theme: obPreviewTheme || 'default',
+    showNumbers: true,
+    showAge: true,
+    showStages: true,
+    showQuote: false,
+    showHistory: false,
+    milestones: [],
+  };
+  realSettingsSnapshot = settings;
+  settings = demoSettings;
+  applyTheme(demoSettings.theme);
+  renderPage();
 }
 
 /** 渲染引导卡主题色样三连（过去色 / 强调色 / 未来色），点击循环选中 */
@@ -713,6 +828,9 @@ function bindEvents() {
     settings = await trySaveSettings({ birthdate: value, theme: obPreviewTheme });
     if (parseISODate(settings.birthdate)) renderPage();
   });
+
+  // H1：演示模式——先看看效果（不写入存储）
+  $('ob-demo-btn').addEventListener('click', showDemoPreview);
 
   // 语言切换
   $('lang-btn').addEventListener('click', (e) => {

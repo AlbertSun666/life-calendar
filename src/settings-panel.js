@@ -83,6 +83,15 @@ function template() {
     </div>
     <div class="sp-row sp-row-pair">
       <label class="sp-check sp-row-check"><input type="checkbox" data-sp="show-stages"><span>${t('sp.showStages')}</span></label>
+      <span class="sp-divider" aria-hidden="true"></span>
+      <span class="sp-row-check sp-row-inline">
+        <label class="sp-row-label-inline" for="sp-stats-unit">${t('sp.statsUnit')}</label>
+        <select class="sp-select" id="sp-stats-unit" data-sp="stats-unit">
+          <option value="day">${t('sp.unitDay')}</option>
+          <option value="week">${t('sp.unitWeek')}</option>
+          <option value="month">${t('sp.unitMonth')}</option>
+        </select>
+      </span>
     </div>
   </section>
 
@@ -181,6 +190,7 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
     $('show-history').checked = settings.showHistory;
     $('show-bg').checked = settings.showBgImage !== false;
     $('show-stages').checked = settings.showStages === true;
+    $('stats-unit').value = settings.statsUnit || 'day';
     $('glass').value = settings.glass ?? 50;
     updateGlassLabel();
     updateThemeCustomOps();
@@ -353,7 +363,23 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
 
     for (const ms of sorted) {
       const item = document.createElement('li');
-      item.className = 'sp-ms-row';
+      item.className = 'sp-ms-row' + (ms.done ? ' done' : '');
+
+      // A4：达成标记勾选框
+      const done = document.createElement('label');
+      done.className = 'sp-ms-done';
+      done.title = t('sp.msDone');
+      const doneInput = document.createElement('input');
+      doneInput.type = 'checkbox';
+      doneInput.checked = !!ms.done;
+      doneInput.addEventListener('change', () => {
+        save({
+          milestones: settings.milestones.map((m) =>
+            m.id === ms.id ? { ...m, done: doneInput.checked } : m
+          ),
+        });
+      });
+      done.append(doneInput);
 
       const date = document.createElement('span');
       date.className = 'sp-ms-date';
@@ -378,7 +404,7 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
         save({ milestones: settings.milestones.filter((m) => m.id !== ms.id) });
       });
 
-      item.append(date, icon, label, del);
+      item.append(done, date, icon, label, del);
       list.appendChild(item);
     }
   }
@@ -427,6 +453,11 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
       save({ showStages: e.target.checked })
     );
 
+    // G1：统计单位切换（天/周/月）
+    $('stats-unit').addEventListener('change', (e) =>
+      save({ statsUnit: e.target.value })
+    );
+
     // 毛玻璃滑杆：拖动实时更新读数，防抖保存（保存后主页面实时预览）
     let glassTimer = null;
     $('glass').addEventListener('input', (e) => {
@@ -451,6 +482,7 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
         year: $('ms-recurring').checked ? null : parsed.year,
         icon: selectedIcon,
         label,
+        done: false, // A4：默认未达成
       };
 
       save({ milestones: [...settings.milestones, milestone] });
@@ -531,12 +563,12 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
   function exportCsv() {
     const BOM = '\uFEFF'; // UTF-8 BOM：让 Excel 正确识别中文
     const esc = (v) => `"${String(v ?? '').replaceAll('"', '""')}"`;
-    const rows = [[t('csv.date'), t('csv.label'), t('csv.icon'), t('csv.recurring')]];
+    const rows = [[t('csv.date'), t('csv.label'), t('csv.icon'), t('csv.recurring'), t('csv.done')]];
     for (const ms of settings.milestones) {
       const date = ms.year == null
         ? `${ms.month}-${ms.day}`
         : `${ms.year}-${ms.month}-${ms.day}`;
-      rows.push([date, ms.label || t('day.milestone'), t(`icon.${ms.icon}`), ms.year == null ? t('csv.yearly') : '']);
+      rows.push([date, ms.label || t('day.milestone'), t(`icon.${ms.icon}`), ms.year == null ? t('csv.yearly') : '', ms.done ? t('csv.yes') : t('csv.no')]);
     }
     const csv = BOM + rows.map((r) => r.map(esc).join(',')).join('\r\n');
     downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'milestones.csv');

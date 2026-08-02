@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS = {
   glass: 50,             // 表格毛玻璃程度 0-100：50=主题原始，0=完全不透明，100=接近全透明磨砂
   milestones: [],        // [{ id, month, day, year|null(每年), icon, label }]
   showStages: false,     // F-07：是否显示生命阶段带
+  statsUnit: 'day',      // G1：统计单位 'day' | 'week' | 'month'
   lastReviewYear: 0,     // F-08：上次展示跨年复盘的年份（0=从未）
   lastBirthdayReviewYear: 0, // F-08：上次展示生日复盘的年份（0=从未）
   reviewDisabled: { year: false, birthday: false }, // F-08：复盘卡不再提醒开关

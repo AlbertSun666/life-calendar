@@ -186,13 +186,16 @@ export async function renderGridPNG(settings, todayDate) {
       ctx.fillRect(x0, y0 + h - 3, w * ratio, 3);
     }
 
-    // 里程碑小圆点
-    const hasMs = settings.milestones.some((m) => m.year === y);
-    if (hasMs) {
+    // 里程碑小圆点（A4：该年全部达成用实心 + 光晕，否则半透明）
+    const yearMss = settings.milestones.filter((m) => m.year === y);
+    if (yearMss.length > 0) {
+      const allDone = yearMss.every((m) => m.done);
       ctx.fillStyle = c.accent;
+      ctx.globalAlpha = allDone ? 1 : 0.5;
       ctx.beginPath();
       ctx.arc(x0 + w - 7, y0 + 7, 2.5, 0, Math.PI * 2);
       ctx.fill();
+      ctx.globalAlpha = 1;
     }
   }
 
@@ -274,10 +277,19 @@ export async function renderGridPNG(settings, todayDate) {
         ctx.drawImage(glyphCache[glyphKey], x0 + (COL_W - size) / 2, cellY + (DAY_ROW_H - size) / 2, size, size);
       }
 
-      // 里程碑图标（优先）或日期数字
+      // 里程碑图标（优先）或日期数字；A4：达成态加 accent 描边，未达成半透明
       if (ms.length > 0 && iconCache[ms[0].icon]) {
+        const m = ms[0];
+        ctx.globalAlpha = m.done ? 1 : 0.6;
         const iconSize = 16;
-        ctx.drawImage(iconCache[ms[0].icon], x0 + (COL_W - iconSize) / 2, cellY + (DAY_ROW_H - iconSize) / 2, iconSize, iconSize);
+        ctx.drawImage(iconCache[m.icon], x0 + (COL_W - iconSize) / 2, cellY + (DAY_ROW_H - iconSize) / 2, iconSize, iconSize);
+        ctx.globalAlpha = 1;
+        if (m.done) {
+          ctx.strokeStyle = c.accent;
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(x0 + 0.75, cellY + 0.75, COL_W - 1.5, DAY_ROW_H - 1.5);
+          ctx.lineWidth = LINE_W;
+        }
       }
 
       if (settings.showNumbers !== false) {
