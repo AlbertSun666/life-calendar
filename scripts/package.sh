@@ -30,6 +30,7 @@ FILES=(
   src/lib/storage.js
   src/lib/theme-css.js
   src/lib/theme-presets.js
+  src/lib/grid-to-png.js
   assets/parasol.jpg
   assets/starry.jpg
   assets/wave.jpg

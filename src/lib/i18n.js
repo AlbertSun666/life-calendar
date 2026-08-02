@@ -67,6 +67,10 @@ export function monthNameVertical(month) {
 /** 翻译：t('key') 或 t('key', { name: 'xxx' }) 替换 {name} 占位符 */
 export function t(key, vars) {
   const entry = STRINGS[key];
+  // TD-04：非扩展环境（开发预览）缺键时告警，便于发现漏译；生产环境静默返回 key
+  if (!entry && typeof chrome === 'undefined') {
+    console.warn('[i18n] missing key: ' + key);
+  }
   let text = (entry && (entry[currentLang] || entry['zh-CN'])) || key;
   if (vars) {
     for (const [k, v] of Object.entries(vars)) {
@@ -198,6 +202,74 @@ const STRINGS = {
   'sp.done': {
     'zh-CN': '完成', 'zh-TW': '完成', ja: '完了', ko: '완료', en: 'Done',
   },
+  'sp.data': {
+    'zh-CN': '数据', 'zh-TW': '資料', ja: 'データ', ko: '데이터', en: 'Data',
+  },
+  'sp.exportData': {
+    'zh-CN': '导出数据', 'zh-TW': '匯出資料', ja: 'データをエクスポート', ko: '데이터 내보내기', en: 'Export data',
+  },
+  'sp.importData': {
+    'zh-CN': '导入数据', 'zh-TW': '匯入資料', ja: 'データをインポート', ko: '데이터 가져오기', en: 'Import data',
+  },
+  'sp.exportCsv': {
+    'zh-CN': '导出重要日期（CSV）', 'zh-TW': '匯出重要日期（CSV）', ja: '大切な日をエクスポート（CSV）', ko: '중요한 날 내보내기(CSV)', en: 'Export important dates (CSV)',
+  },
+  'sp.exportImage': {
+    'zh-CN': '导出为图片', 'zh-TW': '匯出為圖片', ja: '画像としてエクスポート', ko: '이미지로 내보내기', en: 'Export as image',
+  },
+  'sp.imageExportFailed': {
+    'zh-CN': '图片导出失败，请重试。',
+    'zh-TW': '圖片匯出失敗，請重試。',
+    ja: '画像のエクスポートに失敗しました。もう一度お試しください。',
+    ko: '이미지 내보내기에 실패했습니다. 다시 시도하세요.',
+    en: 'Image export failed. Please try again.',
+  },
+  'sp.reviewReplay': {
+    'zh-CN': '查看年度复盘', 'zh-TW': '查看年度復盤', ja: '年間レビューを見る', ko: '연간 리뷰 보기', en: 'View year-in-review',
+  },
+  'sp.dataHint': {
+    'zh-CN': '导出会把设置、重要日期、自定义主题与背景图打包为一个 JSON 文件；换设备或重装后可用导入还原。',
+    'zh-TW': '匯出會把設定、重要日期、自訂主題與背景圖打包為一個 JSON 檔案；換裝置或重裝後可用匯入還原。',
+    ja: 'エクスポートは設定・大切な日・カスタムテーマ・背景画像を 1 つの JSON ファイルにまとめます。端末変更や再インストール後はインポートで復元できます。',
+    ko: '내보내기는 설정, 중요한 날, 사용자 지정 테마, 배경 이미지를 하나의 JSON 파일로 묶습니다. 기기 변경이나 재설치 후 가져오기로 복원할 수 있습니다.',
+    en: 'Export packs settings, important dates, custom themes, and background images into one JSON file. Import restores them after switching devices or reinstalling.',
+  },
+  'sp.saveFailed': {
+    'zh-CN': '保存失败：存储空间不足，请删除部分自定义主题或背景图。',
+    'zh-TW': '儲存失敗：儲存空間不足，請刪除部分自訂主題或背景圖。',
+    ja: '保存に失敗しました：ストレージ容量が不足しています。カスタムテーマや背景画像を削除してください。',
+    ko: '저장 실패: 저장 공간이 부족합니다. 사용자 지정 테마나 배경 이미지를 일부 삭제하세요.',
+    en: 'Save failed: storage is full. Delete some custom themes or background images.',
+  },
+  'sp.importInvalid': {
+    'zh-CN': '导入失败：文件不是有效的人生日历备份。',
+    'zh-TW': '匯入失敗：檔案不是有效的人生日曆備份。',
+    ja: 'インポート失敗：有効な人生カレンダーのバックアップではありません。',
+    ko: '가져오기 실패: 유효한 인생 달력 백업 파일이 아닙니다.',
+    en: 'Import failed: not a valid Life Calendar backup.',
+  },
+  'sp.exportFailed': {
+    'zh-CN': '导出失败，请重试。',
+    'zh-TW': '匯出失敗，請重試。',
+    ja: 'エクスポートに失敗しました。もう一度お試しください。',
+    ko: '내보내기 실패했습니다. 다시 시도하세요.',
+    en: 'Export failed. Please try again.',
+  },
+  'csv.date': {
+    'zh-CN': '日期', 'zh-TW': '日期', ja: '日付', ko: '날짜', en: 'Date',
+  },
+  'csv.label': {
+    'zh-CN': '名称', 'zh-TW': '名稱', ja: '名称', ko: '이름', en: 'Label',
+  },
+  'csv.icon': {
+    'zh-CN': '图标', 'zh-TW': '圖示', ja: 'アイコン', ko: '아이콘', en: 'Icon',
+  },
+  'csv.recurring': {
+    'zh-CN': '每年重复', 'zh-TW': '每年重複', ja: '毎年繰り返す', ko: '매년 반복', en: 'Repeat yearly',
+  },
+  'csv.yearly': {
+    'zh-CN': '是', 'zh-TW': '是', ja: '毎年', ko: '예', en: 'Yes',
+  },
   'sp.newTheme': {
     'zh-CN': '+ 新建主题', 'zh-TW': '+ 新增主題', ja: '＋ 新規テーマ', ko: '+ 새 테마', en: '+ New theme',
   },
@@ -276,6 +348,9 @@ const STRINGS = {
   },
   'sp.glassOriginal': {
     'zh-CN': '原始', 'zh-TW': '原始', ja: '既定', ko: '기본', en: 'Original',
+  },
+  'sp.showStages': {
+    'zh-CN': '生命阶段带', 'zh-TW': '生命階段帶', ja: 'ライフステージ帯', ko: '생애 단계 띠', en: 'Life stage band',
   },
   'sp.ms': {
     'zh-CN': '重要日期', 'zh-TW': '重要日期', ja: '大切な日', ko: '중요한 날', en: 'Important dates',
@@ -387,6 +462,13 @@ const STRINGS = {
   },
   'te.alphaCard': {
     'zh-CN': '卡片', 'zh-TW': '卡片', ja: 'カード', ko: '카드', en: 'Card',
+  },
+  'te.bgSaveFailed': {
+    'zh-CN': '保存失败：存储空间不足，请删除部分自定义主题或背景图。',
+    'zh-TW': '儲存失敗：儲存空間不足，請刪除部分自訂主題或背景圖。',
+    ja: '保存に失敗しました：ストレージ容量が不足しています。カスタムテーマや背景画像を削除してください。',
+    ko: '저장 실패: 저장 공간이 부족합니다. 사용자 지정 테마나 배경 이미지를 일부 삭제하세요.',
+    en: 'Save failed: storage is full. Delete some custom themes or background images.',
   },
 
   // 配色字段名
@@ -508,5 +590,74 @@ const STRINGS = {
     ja: 'モネの空の下、毎日がひとつの音符',
     ko: '모네의 하늘 아래, 매일이 하나의 음표',
     en: "Under Monet's sky — every day a note",
+  },
+
+  // F-09：纪念日倒计时
+  'countdown.days': {
+    'zh-CN': '距「{label}」还有 {n} 天', 'zh-TW': '距「{label}」還有 {n} 天', ja: '「{label}」まであと {n} 日', ko: '「{label}」까지 {n}일 남음', en: '{n} days until "{label}"',
+  },
+  'countdown.soon': {
+    'zh-CN': '即将到来', 'zh-TW': '即將到來', ja: 'もうすぐ', ko: '곧 다가옴', en: 'coming up',
+  },
+  'countdown.today': {
+    'zh-CN': '今天是「{label}」', 'zh-TW': '今天是「{label}」', ja: '今日は「{label}」', ko: '오늘은 「{label}」', en: 'Today is "{label}"',
+  },
+
+  // F-07：生命阶段名
+  'stage.childhood': {
+    'zh-CN': '童年', 'zh-TW': '童年', ja: '幼少期', ko: '유년기', en: 'Childhood',
+  },
+  'stage.school': {
+    'zh-CN': '求学', 'zh-TW': '求學', ja: '学生時代', ko: '학생 시절', en: 'School',
+  },
+  'stage.college': {
+    'zh-CN': '大学', 'zh-TW': '大學', ja: '大学', ko: '대학', en: 'College',
+  },
+  'stage.career': {
+    'zh-CN': '事业', 'zh-TW': '事業', ja: '仕事', ko: '경력', en: 'Career',
+  },
+  'stage.retire': {
+    'zh-CN': '退休', 'zh-TW': '退休', ja: '引退', ko: '은퇴', en: 'Retirement',
+  },
+  'stage.tip': {
+    'zh-CN': '{name} · {start}–{end} 岁', 'zh-TW': '{name} · {start}–{end} 歲', ja: '{name} · {start}–{end}歳', ko: '{name} · {start}–{end}세', en: '{name} · ages {start}–{end}',
+  },
+
+  // F-08：年度复盘卡
+  'review.yearTitle': {
+    'zh-CN': '{year} 年度复盘', 'zh-TW': '{year} 年度復盤', ja: '{year}年 年間レビュー', ko: '{year}년 연간 리뷰', en: '{year} Year in Review',
+  },
+  'review.birthdayTitle': {
+    'zh-CN': '生日快乐 · {age} 岁', 'zh-TW': '生日快樂 · {age} 歲', ja: 'お誕生日おめでとう · {age}歳', ko: '생일 축하 · {age}세', en: 'Happy Birthday · age {age}',
+  },
+  'review.progressLine': {
+    'zh-CN': '这是你人生的第 {age} 年，已度过 {percent}%',
+    'zh-TW': '這是你人生的第 {age} 年，已度過 {percent}%',
+    ja: '人生の第 {age} 年、{percent}% を過ごしました',
+    ko: '인생의 {age}번째 해, {percent}%를 지났습니다',
+    en: 'Year {age} of your life — {percent}% lived',
+  },
+  'review.milestonesHead': {
+    'zh-CN': '这一年的重要日期', 'zh-TW': '這一年的重要日期', ja: 'この年の大切な日', ko: '올해의 중요한 날', en: 'Important dates this year',
+  },
+  'review.noMilestones': {
+    'zh-CN': '这一年没有标记重要日期', 'zh-TW': '這一年沒有標記重要日期', ja: 'この年に大切な日のマークはありません', ko: '올해 표시된 중요한 날이 없습니다', en: 'No important dates marked this year',
+  },
+  'review.close': {
+    'zh-CN': '关闭', 'zh-TW': '關閉', ja: '閉じる', ko: '닫기', en: 'Close',
+  },
+  'review.dontRemind': {
+    'zh-CN': '不再自动提醒', 'zh-TW': '不再自動提醒', ja: '自動で通知しない', ko: '자동 알림 안 함', en: "Don't remind me again",
+  },
+
+  // F-11：首日体验
+  'ob.themePreview': {
+    'zh-CN': '先选一个喜欢的风格', 'zh-TW': '先選一個喜歡的風格', ja: 'お好みのスタイルを', ko: '마음에 드는 스타일을', en: 'Pick a style you like',
+  },
+  'ob.tzHint': {
+    'zh-CN': '检测到时区：{tz}', 'zh-TW': '偵測到時區：{tz}', ja: '検出されたタイムゾーン：{tz}', ko: '감지된 시간대: {tz}', en: 'Detected timezone: {tz}',
+  },
+  'ob.tzMismatch': {
+    'zh-CN': '（如出生时不在此时区，可稍后在设置中修改）', 'zh-TW': '（如出生時不在此時區，可稍後在設定中修改）', ja: '（出生時と異なる場合は、設定で後から変更できます）', ko: '（출생지와 다르면 나중에 설정에서 변경할 수 있습니다）', en: '(If different from your birthplace, you can change it later in settings)',
   },
 };

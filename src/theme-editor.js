@@ -333,7 +333,13 @@ export function openThemeEditor({ draft, onSave, onCancel }) {
 
       // 背景图：新上传 / 清除 / 保留
       if (pendingBg) {
-        await saveBgImage(theme.id, pendingBg);
+        try {
+          await saveBgImage(theme.id, pendingBg);
+        } catch (err) {
+          // TD-03：图片写入失败（配额超限）时给出提示，不关闭编辑器、不丢主题
+          window.alert(t('te.bgSaveFailed'));
+          return;
+        }
         theme.bg = { type: 'upload', src: theme.id };
         theme.bgPos = 'center';
       } else if (removeBg) {

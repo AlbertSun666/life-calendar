@@ -2,11 +2,21 @@
 // mountSettings(root, { onClose, onSaved, onReOnboard })
 
 import { MILESTONE_ICONS, MAX_MILESTONES } from './lib/constants.js';
-import { getSettings, saveSettings, getBgImage, saveBgImage, deleteBgImage } from './lib/storage.js';
-import { parseISODate } from './lib/date.js';
+import {
+  getSettings,
+  saveSettings,
+  getBgImage,
+  saveBgImage,
+  deleteBgImage,
+  exportData,
+  importData,
+  downloadBlob,
+} from './lib/storage.js';
+import { parseISODate, todayInZone } from './lib/date.js';
 import { MILESTONE_SVGS } from './lib/icons.js';
 import { THEME_PRESETS, allThemes, resolveTheme } from './lib/theme-presets.js';
 import { openThemeEditor } from './theme-editor.js';
+import { renderGridPNG } from './lib/grid-to-png.js';
 import { t } from './lib/i18n.js';
 
 // 自定义主题数量上限（顶栏快速切换最多显示 5 预制 + 5 自定义）
@@ -18,6 +28,8 @@ function template() {
     <h1 class="sp-title">${t('sp.title')}</h1>
     <span class="sp-save-tip" data-sp="save-tip">${t('sp.saved')}</span>
   </div>
+
+  <p class="sp-error" data-sp="error" role="alert" hidden></p>
 
   <section class="sp-section">
     <h2 class="sp-section-title">${t('sp.basic')}</h2>
@@ -69,6 +81,9 @@ function template() {
         <span class="sp-range-value" data-sp="glass-value"></span>
       </span>
     </div>
+    <div class="sp-row sp-row-pair">
+      <label class="sp-check sp-row-check"><input type="checkbox" data-sp="show-stages"><span>${t('sp.showStages')}</span></label>
+    </div>
   </section>
 
   <section class="sp-section">
@@ -88,6 +103,19 @@ function template() {
     </form>
   </section>
 
+  <section class="sp-section">
+    <h2 class="sp-section-title">${t('sp.data')}</h2>
+    <p class="sp-hint">${t('sp.dataHint')}</p>
+    <div class="sp-theme-actions">
+      <button class="sp-btn sp-btn-ghost" data-sp="export-json">${t('sp.exportData')}</button>
+      <button class="sp-btn sp-btn-ghost" data-sp="import-json">${t('sp.importData')}</button>
+      <button class="sp-btn sp-btn-ghost" data-sp="export-csv">${t('sp.exportCsv')}</button>
+      <button class="sp-btn sp-btn-ghost" data-sp="export-image">${t('sp.exportImage')}</button>
+      <button class="sp-btn sp-btn-ghost" data-sp="review-replay">${t('sp.reviewReplay')}</button>
+      <input class="sp-import-file" type="file" accept="application/json,.json" data-sp="import-file" hidden>
+    </div>
+  </section>
+
   <div class="sp-actions">
     <button class="sp-btn sp-btn-ghost" data-sp="re-onboard">${t('sp.reOnboard')}</button>
     <button class="sp-btn sp-btn-primary" data-sp="done">${t('sp.done')}</button>
@@ -97,10 +125,11 @@ function template() {
 `;
 }
 
-export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}) {
+export async function mountSettings(root, { onClose, onSaved, onReOnboard, onReviewReplay } = {}) {
   let settings = await getSettings();
   let selectedIcon = MILESTONE_ICONS[0];
   let saveTipTimer = null;
+  let errorTimer = null;
 
   root.classList.add('sp-root');
 
@@ -151,6 +180,7 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}
     $('show-quote').checked = settings.showQuote;
     $('show-history').checked = settings.showHistory;
     $('show-bg').checked = settings.showBgImage !== false;
+    $('show-stages').checked = settings.showStages === true;
     $('glass').value = settings.glass ?? 50;
     updateGlassLabel();
     updateThemeCustomOps();
@@ -393,6 +423,10 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}
       save({ showBgImage: e.target.checked })
     );
 
+    $('show-stages').addEventListener('change', (e) =>
+      save({ showStages: e.target.checked })
+    );
+
     // 毛玻璃滑杆：拖动实时更新读数，防抖保存（保存后主页面实时预览）
     let glassTimer = null;
     $('glass').addEventListener('input', (e) => {
@@ -432,17 +466,92 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}
     $('done').addEventListener('click', () => {
       if (onClose) onClose();
     });
+
+    // 数据导出 / 导入 / CSV / 图片 / 复盘重看
+    $('export-json').addEventListener('click', exportJson);
+    $('export-csv').addEventListener('click', exportCsv);
+    $('export-image').addEventListener('click', exportImage);
+    $('import-json').addEventListener('click', () => $('import-file').click());
+    $('import-file').addEventListener('change', importFile);
+    if (onReviewReplay) $('review-replay').addEventListener('click', onReviewReplay);
   }
 
   /* ---------- 保存 ---------- */
 
   async function save(patch) {
-    settings = await saveSettings(patch);
-    buildThemeOptions();
-    updateThemeCustomOps();
-    renderMilestoneList();
-    showSaveTip();
-    if (onSaved) onSaved(settings);
+    try {
+      settings = await saveSettings(patch);
+      buildThemeOptions();
+      updateThemeCustomOps();
+      renderMilestoneList();
+      showSaveTip();
+      if (onSaved) onSaved(settings);
+    } catch (err) {
+      // TD-03：写入失败（配额超限等）时在面板顶部给出明确提示，而非静默失败
+      showError(t('sp.saveFailed'));
+    }
+  }
+
+  /* ---------- 数据导出 / 导入 / CSV ---------- */
+
+  function showError(message) {
+    const el = $('error');
+    el.textContent = message;
+    el.hidden = false;
+    clearTimeout(errorTimer);
+    errorTimer = setTimeout(() => (el.hidden = true), 8000);
+  }
+
+  async function exportJson() {
+    try {
+      const json = await exportData();
+      const stamp = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+      downloadBlob(new Blob([json], { type: 'application/json' }), `life-calendar-backup-${stamp}.json`);
+    } catch (err) {
+      showError(t('sp.exportFailed'));
+    }
+  }
+
+  async function importFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // 允许重复选择同一文件
+    if (!file) return;
+    try {
+      const text = await file.text();
+      await importData(text);
+      location.reload();
+    } catch (err) {
+      // 区分：配额不足（文件合法但空间不够）vs 文件非法
+      const code = err && err.message;
+      if (code === 'QUOTA') showError(t('sp.saveFailed'));
+      else showError(t('sp.importInvalid'));
+    }
+  }
+
+  function exportCsv() {
+    const BOM = '\uFEFF'; // UTF-8 BOM：让 Excel 正确识别中文
+    const esc = (v) => `"${String(v ?? '').replaceAll('"', '""')}"`;
+    const rows = [[t('csv.date'), t('csv.label'), t('csv.icon'), t('csv.recurring')]];
+    for (const ms of settings.milestones) {
+      const date = ms.year == null
+        ? `${ms.month}-${ms.day}`
+        : `${ms.year}-${ms.month}-${ms.day}`;
+      rows.push([date, ms.label || t('day.milestone'), t(`icon.${ms.icon}`), ms.year == null ? t('csv.yearly') : '']);
+    }
+    const csv = BOM + rows.map((r) => r.map(esc).join(',')).join('\r\n');
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'milestones.csv');
+  }
+
+  // F-10：导出当前人生表为 PNG
+  async function exportImage() {
+    try {
+      const today = todayInZone(settings.timezone);
+      const blob = await renderGridPNG(settings, today);
+      const stamp = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+      downloadBlob(blob, `life-calendar-${stamp}.png`);
+    } catch (err) {
+      showError(t('sp.imageExportFailed'));
+    }
   }
 
   function showSaveTip() {

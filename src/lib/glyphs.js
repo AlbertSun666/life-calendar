@@ -26,9 +26,16 @@ function encodeSVG(svg) {
     .replace(/\s+/g, ' ');
 }
 
+/** 返回图形的 SVG 字符串（PNG 导出等 canvas 场景复用）；type 为 none/未知时返回 null */
+export function glyphSVG(type, color, filled = false) {
+  const make = GLYPHS[type];
+  if (!make) return null;
+  return make(color, filled);
+}
+
 /** 生成图形背景的 data-URI；type 为 none/未知时返回 'none' */
 export function glyphDataURI(type, color, filled = false) {
-  const make = GLYPHS[type];
-  if (!make) return 'none';
-  return `url("data:image/svg+xml,${encodeSVG(make(color, filled))}")`;
+  const svg = glyphSVG(type, color, filled);
+  if (!svg) return 'none';
+  return `url("data:image/svg+xml,${encodeSVG(svg)}")`;
 }

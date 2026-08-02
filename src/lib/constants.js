@@ -4,6 +4,15 @@ export const LIFE_YEARS = 80;   // 一生按 80 年计
 export const YEAR_ROWS = 5;     // 年网格 5 行
 export const YEAR_COLS = 16;    // 年网格 16 列
 
+// F-07：生命阶段定义（硬编码，按年龄划分；阶段名见 i18n stage.* 键）
+export const LIFE_STAGES = [
+  { id: 'childhood', start: 0, end: 6 },    // 童年
+  { id: 'school',    start: 7, end: 18 },   // 求学
+  { id: 'college',   start: 19, end: 22 },  // 大学
+  { id: 'career',    start: 23, end: 60 },  // 事业
+  { id: 'retire',    start: 61, end: 80 },  // 退休
+];
+
 export const DEFAULT_SETTINGS = {
   nickname: '',          // 昵称，用于标题「xxx 的人生日历」
   birthdate: '',         // 出生日期，ISO 格式 'YYYY-MM-DD'
@@ -18,6 +27,10 @@ export const DEFAULT_SETTINGS = {
   showBgImage: true,     // 是否显示主题背景图片
   glass: 50,             // 表格毛玻璃程度 0-100：50=主题原始，0=完全不透明，100=接近全透明磨砂
   milestones: [],        // [{ id, month, day, year|null(每年), icon, label }]
+  showStages: false,     // F-07：是否显示生命阶段带
+  lastReviewYear: 0,     // F-08：上次展示跨年复盘的年份（0=从未）
+  lastBirthdayReviewYear: 0, // F-08：上次展示生日复盘的年份（0=从未）
+  reviewDisabled: { year: false, birthday: false }, // F-08：复盘卡不再提醒开关
 };
 
 // 里程碑图标枚举（内联 SVG 定义在 src/lib/icons.js，显示名见 src/lib/i18n.js 的 icon.* 键）

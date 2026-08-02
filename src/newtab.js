@@ -1,8 +1,8 @@
 // 新标签页主逻辑：渲染人生日历（年网格 + 当年的月日网格）
 
-import { LIFE_YEARS, YEAR_COLS } from './lib/constants.js';
+import { LIFE_YEARS, YEAR_COLS, LIFE_STAGES } from './lib/constants.js';
 import { getSettings, saveSettings, onSettingsChanged, getBgImage } from './lib/storage.js';
-import { resolveTheme, allThemes } from './lib/theme-presets.js';
+import { resolveTheme, allThemes, THEME_PRESETS } from './lib/theme-presets.js';
 import { buildThemeCSS } from './lib/theme-css.js';
 import {
   todayInZone,
@@ -29,6 +29,7 @@ const IS_DEV = typeof chrome === 'undefined' || !chrome.storage || !chrome.stora
 let settings = null;
 let todayKey = ''; // 当前渲染所用的「今天」，用于跨天检测
 let viewYear = null; // 月份网格当前查看的年份；null = 今年
+let obPreviewTheme = 'default'; // F-11：引导卡预览中的选中主题
 
 init();
 
@@ -49,7 +50,27 @@ async function init() {
   // 开发预览：?settings=open 直接打开设置弹窗（无头截图无法点击，以此截取弹窗态）
   if (IS_DEV && new URLSearchParams(location.search).get('settings') === 'open') {
     openSettingsModal();
+    // 截图验证辅助：自动滚动到数据区
+    if (new URLSearchParams(location.search).get('scroll') === 'data') {
+      setTimeout(() => {
+        const titles = ['数据', '資料', 'データ', '데이터', 'Data']; // 五语言的「数据」标题
+        const sections = Array.from(document.querySelectorAll('.sp-section'));
+        const dataSec = sections.find((s) => titles.some((t) => s.textContent.includes(t)));
+        dataSec?.scrollIntoView({ behavior: 'instant', block: 'start' });
+      }, 300);
+    }
   }
+}
+
+/** 保存设置；失败（配额超限等，TD-03）时保持当前设置不变并向用户告警 */
+async function trySaveSettings(patch) {
+  try {
+    settings = await saveSettings(patch);
+  } catch (err) {
+    console.error('[life-calendar] 保存设置失败:', err);
+    window.alert(t('sp.saveFailed'));
+  }
+  return settings;
 }
 
 function resolveToday() {
@@ -97,6 +118,9 @@ function renderPage() {
   const today = resolveToday();
   todayKey = `${today.year}-${today.month}-${today.day}`;
 
+  // F-08：跨年 / 生日复盘卡触发检查（生日优先）
+  checkReviewTrigger(birth, today);
+
   // 标题与统计
   const title = settings.nickname
     ? t('title.withNickname', { name: settings.nickname })
@@ -121,8 +145,10 @@ function renderPage() {
   document.body.classList.toggle('no-age', !settings.showAge);
 
   buildLifeProgress(birth, today);
+  buildStageBar(birth, today);
   buildGrid(birth, today);
   renderDaily(today);
+  renderCountdown(birth, today);
 
   $('onboarding').hidden = true;
   $('page').hidden = false;
@@ -143,7 +169,7 @@ function renderThemeBar() {
     pill.setAttribute('aria-pressed', String(theme.id === settings.theme));
     pill.addEventListener('click', async () => {
       if (theme.id === settings.theme) return;
-      settings = await saveSettings({ theme: theme.id });
+      settings = await trySaveSettings({ theme: theme.id });
       applyTheme(settings.theme);
       renderThemeBar();
     });
@@ -168,6 +194,9 @@ function buildYearCells(grid, birth, today, year) {
     cell.className = 'cell year';
     cell.style.gridRow = String(1 + Math.floor(i / YEAR_COLS));
     cell.style.gridColumn = `${1 + (i % YEAR_COLS) * 2} / span 2`;
+    // F-05：年格可聚焦，配合方向键键盘导航
+    cell.tabIndex = 0;
+    cell.dataset.year = String(y);
 
     if (y < today.year) cell.classList.add('past');
     else if (y === today.year) cell.classList.add('current');
@@ -205,13 +234,60 @@ function buildYearCells(grid, birth, today, year) {
       t('year.tip', { year: y, age: y - birth.year }) + (hasMilestone ? t('year.marked') : '');
 
     // 点击切换下方月份网格展示的年份；再次点击（或点今年）回到今年
-    cell.addEventListener('click', () => {
-      viewYear = y === year || y === today.year ? null : y;
-      buildGrid(parseISODate(settings.birthdate), resolveToday());
-    });
+    cell.addEventListener('click', () => switchYear(y, year, birth, today));
 
     grid.appendChild(cell);
   }
+}
+
+/** 切换下方月份网格展示的年份；再次点同一格（或今年）回到今年 */
+function switchYear(y, year, birth, today) {
+  viewYear = y === year || y === today.year ? null : y;
+  buildGrid(birth, today);
+  // 焦点还给当前展示年份的年格，键盘操作可以连续进行
+  const focusYear = viewYear ?? today.year;
+  const target = $('grid').querySelector(`.cell.year[data-year="${focusYear}"]`);
+  if (target) target.focus();
+}
+
+/** F-05：键盘导航年格（方向键移动选中，Enter 切月表，Esc 回今年）。
+    委托绑定一次，避免 buildGrid 重建时重复挂监听。 */
+function bindGridKeydown() {
+  const grid = $('grid');
+  grid.addEventListener('keydown', (e) => {
+    const el = e.target;
+    if (!(el instanceof HTMLElement) || !el.classList.contains('cell') || !el.classList.contains('year')) return;
+
+    const birth = parseISODate(settings.birthdate);
+    const today = resolveToday();
+    const year = viewYear ?? today.year; // 当前下方展示的年份
+    const years = Array.from({ length: LIFE_YEARS }, (_, i) => birth.year + i);
+    const idx = years.indexOf(Number(el.dataset.year));
+    if (idx < 0) return;
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      switchYear(years[idx], year, birth, today);
+      return;
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation(); // 阻止冒泡到 document 级 Esc（关闭设置弹窗/语言菜单）
+      if (viewYear !== null) switchYear(years[idx], year, birth, today); // 切回今年
+      return;
+    }
+
+    let next = -1;
+    if (e.key === 'ArrowRight') next = idx + 1;
+    else if (e.key === 'ArrowLeft') next = idx - 1;
+    else if (e.key === 'ArrowDown') next = idx + YEAR_COLS;
+    else if (e.key === 'ArrowUp') next = idx - YEAR_COLS;
+    else return;
+    e.preventDefault();
+    if (next < 0 || next >= LIFE_YEARS) return;
+    grid.querySelector(`.cell.year[data-year="${years[next]}"]`).focus();
+  });
 }
 
 function buildMonthRows(grid, today, year) {
@@ -306,6 +382,45 @@ function buildLifeProgress(birth, today) {
   }
 }
 
+/* ---------- F-07：生命阶段带 ---------- */
+
+/** 渲染生命阶段带：5 段按年龄跨度比例占宽，当前阶段高亮 */
+function buildStageBar(birth, today) {
+  const el = $('stage-bar');
+  if (!settings.showStages) {
+    el.hidden = true;
+    return;
+  }
+  el.hidden = false;
+  el.textContent = '';
+
+  const currentAge = today.year - birth.year;
+  const totalYears = LIFE_YEARS; // 80
+
+  for (const stage of LIFE_STAGES) {
+    const span = stage.end - stage.start + 1;
+    const seg = document.createElement('span');
+    seg.className = 'stage-seg';
+    // 按年龄跨度占整带精确比例（与年格 80 段等宽对齐，gap 由 flex-basis 内消化）
+    seg.style.flexBasis = ((span / LIFE_YEARS) * 100).toFixed(3) + '%';
+    seg.style.flexGrow = '0';
+    seg.style.flexShrink = '0';
+    seg.dataset.stage = stage.id;
+
+    if (currentAge >= stage.start && currentAge <= stage.end) {
+      seg.classList.add('current');
+    }
+
+    const name = document.createElement('span');
+    name.className = 'stage-name';
+    name.textContent = t(`stage.${stage.id}`);
+    seg.appendChild(name);
+
+    seg.title = t('stage.tip', { name: t(`stage.${stage.id}`), start: stage.start, end: stage.end });
+    el.appendChild(seg);
+  }
+}
+
 /** 日格悬停提示：日期 + 里程碑 + 历史上的今天（多行） */
 function buildDayTitle(year, month, day) {
   const lines = [`${year}-${pad(month)}-${pad(day)}`];
@@ -366,6 +481,150 @@ function findMilestones(month, day, year) {
   );
 }
 
+/* ---------- F-09：纪念日倒计时 ---------- */
+
+/** 算某个里程碑「下一次到来」的日期；已永久过去的返回 null。
+ *  每年重复：取今年该月该日，已过则取明年；2/29 在平年顺延到 2/28。
+ *  一次性：该日期 >= 今天才返回，否则 null。 */
+function nextMilestoneDate(m, today) {
+  if (m.year == null) {
+    // 每年重复
+    for (const yr of [today.year, today.year + 1]) {
+      const day = Math.min(m.day, daysInMonth(yr, m.month)); // 2/29 平年→2/28
+      const date = { year: yr, month: m.month, day };
+      if (compareYMD(date, today) >= 0) return date;
+    }
+    return null;
+  }
+  // 一次性
+  const date = { year: m.year, month: m.month, day: m.day };
+  return compareYMD(date, today) >= 0 ? date : null;
+}
+
+/** 渲染倒计时：距下一个里程碑的天数，无则隐藏 */
+function renderCountdown(birth, today) {
+  const el = $('countdown');
+  const candidates = settings.milestones
+    .map((m) => ({ m, date: nextMilestoneDate(m, today) }))
+    .filter((c) => c.date);
+
+  if (candidates.length === 0) {
+    el.hidden = true;
+    return;
+  }
+
+  // 取最近的
+  candidates.sort((a, b) => compareYMD(a.date, b.date));
+  const { m, date } = candidates[0];
+  const n = diffDays(today, date);
+  const label = m.label || t('day.milestone');
+
+  if (n === 0) {
+    el.textContent = t('countdown.today', { label });
+  } else {
+    const base = t('countdown.days', { label, n });
+    if (n <= 7) {
+      el.innerHTML = escapeHtml(base) + ` <span class="soon">${escapeHtml(t('countdown.soon'))}</span>`;
+    } else {
+      el.textContent = base;
+    }
+  }
+  el.hidden = false;
+}
+
+/* ---------- F-08：年度复盘卡 ---------- */
+
+/** 检查是否需要弹出复盘卡：生日优先于跨年；展示后写回标记，同一次 render 只弹一张。
+ *  跨年复盘只在 1 月触发（跨年时刻的仪式）；其余时间想看可点设置面板「查看年度复盘」。 */
+function checkReviewTrigger(birth, today) {
+  const disabled = settings.reviewDisabled || {};
+  const isBirthday =
+    today.month === birth.month && today.day === birth.day &&
+    today.year > (settings.lastBirthdayReviewYear || 0) &&
+    !disabled.birthday;
+  if (isBirthday) {
+    showReviewCard('birthday', today.year, birth);
+    trySaveSettings({ lastBirthdayReviewYear: today.year });
+    return;
+  }
+  const isNewYear =
+    today.month === 1 &&
+    today.year > (settings.lastReviewYear || 0) &&
+    !disabled.year;
+  if (isNewYear) {
+    showReviewCard('year', today.year - 1, birth);
+    trySaveSettings({ lastReviewYear: today.year });
+  }
+}
+
+/** 渲染并展示复盘卡
+ *  type: 'year'（跨年复盘 lastYear）| 'birthday'（生日复盘今年）
+ *  year: 复盘的目标年份；birth 用于算年龄 */
+function showReviewCard(type, year, birth) {
+  const overlay = $('review-overlay');
+  const card = $('review-card');
+
+  const age = year - birth.year;
+  const stats = lifeStats(birth, { year, month: 12, day: 31 });
+  const titleText = type === 'birthday'
+    ? t('review.birthdayTitle', { age })
+    : t('review.yearTitle', { year });
+
+  // 该年的里程碑：一次性（year 匹配）+ 每年重复
+  const yearMilestones = settings.milestones.filter(
+    (m) => m.year == null || m.year === year
+  );
+  const sorted = [...yearMilestones].sort(
+    (a, b) => a.month - b.month || a.day - b.day || (a.year || 0) - (b.year || 0)
+  );
+
+  let msHtml;
+  if (sorted.length === 0) {
+    msHtml = `<p class="review-ms-empty">${escapeHtml(t('review.noMilestones'))}</p>`;
+  } else {
+    msHtml = `<ul class="review-ms-list">` + sorted.map((m) => {
+      const dateStr = m.year == null
+        ? t('ms.yearly', { month: m.month, day: m.day })
+        : t('ms.onceday', { year: m.year, month: m.month, day: m.day });
+      return `<li class="review-ms-item"><span class="review-ms-date">${escapeHtml(dateStr)}</span><span class="review-ms-label">${escapeHtml(m.label || t('day.milestone'))}</span></li>`;
+    }).join('') + `</ul>`;
+  }
+
+  const disabledKey = type === 'birthday' ? 'birthday' : 'year';
+  // 进度百分比数字单独高亮：t() 只传纯文本，外层再拆分（HTML 一律由 escapeHtml 生成）
+  const progressText = t('review.progressLine', { age, percent: stats.percent.toFixed(1) });
+  const percentMark = stats.percent.toFixed(1) + '%';
+  const progressHtml = escapeHtml(progressText).replace(
+    percentMark,
+    `<span class="num">${escapeHtml(percentMark)}</span>`
+  );
+  card.innerHTML = `
+    <h2 class="review-title">${escapeHtml(titleText)}</h2>
+    <p class="review-progress">${progressHtml}</p>
+    <p class="review-ms-head">${escapeHtml(t('review.milestonesHead'))}</p>
+    ${msHtml}
+    <div class="review-actions">
+      <button class="review-close" type="button">${escapeHtml(t('review.close'))}</button>
+      <label class="review-dont-remind"><input type="checkbox" data-review-disable="${disabledKey}"><span>${escapeHtml(t('review.dontRemind'))}</span></label>
+    </div>
+  `;
+
+  overlay.hidden = false;
+
+  // 关闭按钮
+  card.querySelector('.review-close').addEventListener('click', () => closeReviewCard());
+  // 不再提醒
+  card.querySelector('[data-review-disable]').addEventListener('change', (e) => {
+    const key = e.target.dataset.reviewDisable;
+    const patch = { reviewDisabled: { ...(settings.reviewDisabled || {}), [key]: e.target.checked } };
+    trySaveSettings(patch);
+  });
+}
+
+function closeReviewCard() {
+  $('review-overlay').hidden = true;
+}
+
 /* ---------- 首次使用引导 ---------- */
 
 function showOnboarding() {
@@ -381,19 +640,78 @@ function showOnboarding() {
   const now = new Date();
   input.max = `${now.getFullYear()}-12-31`;
   input.min = '1949-01-01';
+
+  // F-11：主题预览——点击切换预制主题色样，提交时一并保存
+  obPreviewTheme = 'default';
+  buildObThemePreview();
+  $('ob-preview-label').textContent = t('ob.themePreview');
+  $('ob-theme-preview').hidden = false;
+
+  // F-11：时区提示——检测浏览器时区，温和提醒可在设置中修改
+  buildObTzHint();
+
   setTimeout(() => input.focus(), 50);
+}
+
+/** 渲染引导卡主题色样三连（过去色 / 强调色 / 未来色），点击循环选中 */
+function buildObThemePreview() {
+  const container = $('ob-swatches');
+  container.textContent = '';
+  for (const theme of THEME_PRESETS) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ob-swatch' + (theme.id === obPreviewTheme ? ' active' : '');
+    btn.dataset.theme = theme.id;
+
+    const dots = document.createElement('span');
+    dots.className = 'dots';
+    const c = theme.colors;
+    for (const color of [c.cellPast, c.accent, c.cellFuture]) {
+      const dot = document.createElement('i');
+      dot.style.background = color;
+      dots.appendChild(dot);
+    }
+    btn.appendChild(dots);
+
+    const name = document.createElement('span');
+    name.className = 'name';
+    name.textContent = t(`theme.${theme.id}`);
+    btn.appendChild(name);
+
+    btn.addEventListener('click', () => {
+      obPreviewTheme = theme.id;
+      buildObThemePreview();
+    });
+    container.appendChild(btn);
+  }
+}
+
+/** 渲染时区提示：检测浏览器时区并显示 */
+function buildObTzHint() {
+  const el = $('ob-tz-hint');
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) {
+      el.textContent = t('ob.tzHint', { tz }) + ' ' + t('ob.tzMismatch');
+      el.hidden = false;
+      return;
+    }
+  } catch {
+    // 部分环境无 Intl，静默隐藏
+  }
+  el.hidden = true;
 }
 
 /* ---------- 事件 ---------- */
 
 function bindEvents() {
-  // 引导表单：保存出生日期后即渲染
+  // 引导表单：保存出生日期 + 预览选中的主题后即渲染
   $('ob-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const value = $('ob-birthdate').value;
     if (!parseISODate(value)) return;
-    settings = await saveSettings({ birthdate: value });
-    renderPage();
+    settings = await trySaveSettings({ birthdate: value, theme: obPreviewTheme });
+    if (parseISODate(settings.birthdate)) renderPage();
   });
 
   // 语言切换
@@ -407,14 +725,20 @@ function bindEvents() {
     }
   });
 
-  // 设置入口：打开悬浮弹窗
+  // F-05：年格键盘导航（委托绑定，仅一次）
+  bindGridKeydown();
+
+  // 设置入口：打开悬浮弹窗（遮罩点击关闭只在弹窗挂载时绑定一次，见 openSettingsModal）
   $('settings-btn').addEventListener('click', openSettingsModal);
-  $('settings-overlay').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) closeSettingsModal();
+
+  // F-08：复盘卡遮罩点击关闭 + Esc 关闭
+  $('review-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeReviewCard();
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeSettingsModal();
+      closeReviewCard();
       closeLangMenu();
     }
   });
@@ -470,7 +794,11 @@ async function changeLanguage(lang) {
     closeLangMenu();
     return;
   }
-  settings = await saveSettings({ language: lang });
+  settings = await trySaveSettings({ language: lang });
+  if (lang !== settings.language) {
+    closeLangMenu();
+    return;
+  }
   setLanguage(lang);
   buildLangMenu();
   applyTheme(settings.theme);
@@ -496,6 +824,21 @@ function openSettingsModal() {
       onReOnboard: () => {
         closeSettingsModal();
         showOnboarding();
+      },
+      onReviewReplay: () => {
+        // F-08：手动重看最近一次复盘卡（跨年优先，无则生日）
+        closeSettingsModal();
+        const birth = parseISODate(settings.birthdate);
+        if (!birth) return;
+        const today = resolveToday();
+        if (settings.lastReviewYear && today.year > settings.lastReviewYear) {
+          showReviewCard('year', today.year - 1, birth);
+        } else if (settings.lastBirthdayReviewYear) {
+          showReviewCard('birthday', settings.lastBirthdayReviewYear, birth);
+        } else {
+          // 从未触发过复盘 → 展示去年的
+          showReviewCard('year', today.year - 1, birth);
+        }
       },
       onSaved: (next) => {
         // 保存后实时套用（扩展环境下 storage.onChanged 也会触发，二者幂等）
