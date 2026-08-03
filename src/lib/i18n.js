@@ -425,6 +425,40 @@ const STRINGS = {
   'sp.msAdd': {
     'zh-CN': '添加', 'zh-TW': '新增', ja: '追加', ko: '추가', en: 'Add',
   },
+  // A5：里程碑模板包
+  'sp.msTemplate': {
+    'zh-CN': '常用模板', 'zh-TW': '常用範本', ja: 'よく使うテンプレート', ko: '자주 쓰는 템플릿', en: 'Templates',
+  },
+  'tpl.mom': {
+    'zh-CN': '妈妈生日', 'zh-TW': '媽媽生日', ja: '母の誕生日', ko: '어머니 생일', en: "Mom's birthday",
+  },
+  'tpl.dad': {
+    'zh-CN': '爸爸生日', 'zh-TW': '爸爸生日', ja: '父の誕生日', ko: '아버지 생일', en: "Dad's birthday",
+  },
+  'tpl.anniv': {
+    'zh-CN': '结婚纪念', 'zh-TW': '結婚紀念', ja: '結婚記念日', ko: '결혼 기념일', en: 'Wedding anniversary',
+  },
+  'tpl.baby': {
+    'zh-CN': '宝宝出生', 'zh-TW': '寶寶出生', ja: '赤ちゃん誕生', ko: '아기 탄생', en: 'Baby born',
+  },
+  'tpl.goal': {
+    'zh-CN': '年度目标', 'zh-TW': '年度目標', ja: '年度目標', ko: '연도 목표', en: 'Yearly goal',
+  },
+  // V1：层级钻取
+  'drill.back': {
+    'zh-CN': '返回', 'zh-TW': '返回', ja: '戻る', ko: '돌아가기', en: 'Back',
+  },
+  'drill.viewCalendar': {
+    'zh-CN': '查看月历', 'zh-TW': '查看月曆', ja: '月历を見る', ko: '월력 보기', en: 'View calendar',
+  },
+  // V1：周历星期名（周一起始）
+  'weekday.mon': { 'zh-CN': '一', 'zh-TW': '一', ja: '月', ko: '월', en: 'Mon' },
+  'weekday.tue': { 'zh-CN': '二', 'zh-TW': '二', ja: '火', ko: '화', en: 'Tue' },
+  'weekday.wed': { 'zh-CN': '三', 'zh-TW': '三', ja: '水', ko: '수', en: 'Wed' },
+  'weekday.thu': { 'zh-CN': '四', 'zh-TW': '四', ja: '木', ko: '목', en: 'Thu' },
+  'weekday.fri': { 'zh-CN': '五', 'zh-TW': '五', ja: '金', ko: '금', en: 'Fri' },
+  'weekday.sat': { 'zh-CN': '六', 'zh-TW': '六', ja: '土', ko: '토', en: 'Sat' },
+  'weekday.sun': { 'zh-CN': '日', 'zh-TW': '日', ja: '日', ko: '일', en: 'Sun' },
   // A4：里程碑达成标记
   'sp.msDone': {
     'zh-CN': '已达成', 'zh-TW': '已達成', ja: '達成済み', ko: '달성됨', en: 'Done',

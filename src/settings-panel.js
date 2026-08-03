@@ -99,6 +99,14 @@ function template() {
     <h2 class="sp-section-title">${t('sp.ms')}</h2>
     <ul class="sp-ms-list" data-sp="ms-list"></ul>
     <form class="sp-ms-form" data-sp="ms-form">
+      <div class="sp-ms-templates" data-sp="ms-templates">
+        <span class="sp-ms-templates-label">${t('sp.msTemplate')}</span>
+        <button class="sp-ms-tpl" type="button" data-tpl="mom">${t('tpl.mom')}</button>
+        <button class="sp-ms-tpl" type="button" data-tpl="dad">${t('tpl.dad')}</button>
+        <button class="sp-ms-tpl" type="button" data-tpl="anniv">${t('tpl.anniv')}</button>
+        <button class="sp-ms-tpl" type="button" data-tpl="baby">${t('tpl.baby')}</button>
+        <button class="sp-ms-tpl" type="button" data-tpl="goal">${t('tpl.goal')}</button>
+      </div>
       <div class="sp-ms-form-row">
         <input class="sp-input" type="date" data-sp="ms-date" min="1949-01-01" max="${new Date().getFullYear()}-12-31" required>
         <input class="sp-input sp-ms-label-input" type="text" data-sp="ms-label" maxlength="20" autocomplete="off" placeholder="${t('sp.msLabelPh')}" required>
@@ -489,6 +497,29 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
       $('ms-label').value = '';
       $('ms-date').value = '';
       $('ms-label').focus();
+    });
+
+    // A5：里程碑模板包——点击模板填入草稿（日期留空待填，图标+标签预填）
+    const TPL_MAP = {
+      mom:    { label: t('tpl.mom'),    icon: 'cake',  recurring: true },
+      dad:    { label: t('tpl.dad'),    icon: 'cake',  recurring: true },
+      anniv:  { label: t('tpl.anniv'), icon: 'rings', recurring: true },
+      baby:   { label: t('tpl.baby'),  icon: 'heart', recurring: false },
+      goal:   { label: t('tpl.goal'),  icon: 'flag',  recurring: false },
+    };
+    document.querySelectorAll('.sp-ms-tpl').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tpl = TPL_MAP[btn.dataset.tpl];
+        if (!tpl) return;
+        $('ms-label').value = tpl.label;
+        $('ms-recurring').checked = tpl.recurring;
+        selectedIcon = tpl.icon;
+        // 同步图标选择器高亮
+        $('icon-picker').querySelectorAll('.sp-icon-btn').forEach((b) =>
+          b.classList.toggle('selected', b.dataset.icon === tpl.icon)
+        );
+        $('ms-date').focus();
+      });
     });
 
     // 底部按钮

@@ -49,6 +49,17 @@
     <div class="stage-bar" id="stage-bar" hidden></div>
     <section class="card">
       <div class="grid" id="grid"></div>
+      <button class="drill-entry" type="button" id="drill-entry" hidden></button>
+    </section>
+
+    <!-- V1：层级钻取视图——上方年份数字+12月格，下方经典月历（周×日，周一起始） -->
+    <section class="card drill-view" id="drill-view" hidden>
+      <header class="drill-header">
+        <button class="drill-back" type="button" id="drill-back"></button>
+        <span class="drill-year" id="drill-year"></span>
+      </header>
+      <div class="drill-months" id="drill-months"></div>
+      <div class="drill-calendar" id="drill-calendar"></div>
     </section>
   </main>
 

@@ -387,6 +387,33 @@ input[type="date"].sp-input {
   gap: 10px;
   padding: 14px 0 0;
 }
+/* A5：模板包按钮行 */
+.sp-ms-templates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 4px;
+}
+.sp-ms-templates-label {
+  font-size: 12px;
+  color: var(--muted, #8b8b8b);
+  margin-right: 2px;
+}
+.sp-ms-tpl {
+  border: 1px solid var(--panel-line, #d5d5d2);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text, #1f1f1f);
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.sp-ms-tpl:hover {
+  border-color: var(--accent, #1f1f1f);
+  color: var(--accent, #1f1f1f);
+}
 /* 第一行：日期、事件名称、每年重复、新增按钮 */
 .sp-ms-form-row {
   display: flex;

@@ -32,6 +32,8 @@ let todayKey = ''; // 当前渲染所用的「今天」，用于跨天检测
 let viewYear = null; // 月份网格当前查看的年份；null = 今年
 let obPreviewTheme = 'default'; // F-11：引导卡预览中的选中主题
 let realSettingsSnapshot = null; // H1：演示模式临时替换 settings 时的真实快照
+let drillYear = null; // V1：钻取视图展示的年份；null = 未钻取
+let drillMonth = null; // V1：钻取视图当前月份；null = 未选月（显示12月格概览）
 
 init();
 
@@ -165,6 +167,7 @@ function renderPage() {
   buildLifeProgress(birth, today);
   buildStageBar(birth, today);
   buildGrid(birth, today);
+  updateDrillEntry();
   renderDaily(today);
   renderCountdown(birth, today);
   renderRitual(birth, today);
@@ -269,6 +272,133 @@ function switchYear(y, year, birth, today) {
   const focusYear = viewYear ?? today.year;
   const target = $('grid').querySelector(`.cell.year[data-year="${focusYear}"]`);
   if (target) target.focus();
+  updateDrillEntry();
+}
+
+/* ---------- V1：层级钻取 ---------- */
+
+/** 钻取入口按钮：viewYear 不为 null（正在看某年）时显示「查看月历」 */
+function updateDrillEntry() {
+  const entry = $('drill-entry');
+  if (viewYear !== null && drillYear === null) {
+    entry.textContent = t('drill.viewCalendar');
+    entry.hidden = false;
+  } else {
+    entry.hidden = true;
+  }
+}
+
+/** 进入钻取视图：上方年份数字+12月格，下方经典周历 */
+function openDrill(year, today) {
+  drillYear = year;
+  drillMonth = null;
+  $('grid').closest('.card').hidden = true;
+  $('drill-view').hidden = false;
+  renderDrill(today);
+}
+
+/** 退出钻取视图，回层级 0 */
+function closeDrill(birth, today) {
+  drillYear = null;
+  drillMonth = null;
+  $('drill-view').hidden = true;
+  $('grid').closest('.card').hidden = false;
+  buildGrid(birth, today);
+  updateDrillEntry();
+}
+
+/** 渲染钻取视图：年份标题 + 12 月格 + 当前月周历 */
+function renderDrill(today) {
+  const year = drillYear;
+  $('drill-year').textContent = String(year);
+  $('drill-back').textContent = t('drill.back');
+
+  // 12 月格（4×3）
+  const monthsEl = $('drill-months');
+  monthsEl.textContent = '';
+  for (let m = 1; m <= 12; m++) {
+    const seg = document.createElement('button');
+    seg.type = 'button';
+    seg.className = 'drill-month' + (drillMonth === m ? ' active' : '');
+    if (year === today.year && m === today.month) seg.classList.add('current');
+    seg.dataset.month = String(m);
+    seg.innerHTML = `<span class="dm-num">${m}</span><span class="dm-name">${monthName(m)}</span>`;
+    seg.addEventListener('click', () => {
+      drillMonth = m;
+      renderDrill(today);
+    });
+    monthsEl.appendChild(seg);
+  }
+
+  // 下方周历（钻取当前选中月，无则默认当月或 1 月）
+  const showMonth = drillMonth ?? (year === today.year ? today.month : 1);
+  if (!drillMonth) drillMonth = showMonth;
+  renderDrillCalendar(year, showMonth, today);
+}
+
+/** 经典月历：7 列周一起始，本周整行 accent 描边 */
+function renderDrillCalendar(year, month, today) {
+  const cal = $('drill-calendar');
+  cal.textContent = '';
+  cal.dataset.year = String(year);
+  cal.dataset.month = String(month);
+
+  // 星期表头（周一起始）
+  const weekdays = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+  for (const wd of weekdays) {
+    const h = document.createElement('div');
+    h.className = 'dc-head';
+    h.textContent = t(`weekday.${wd}`);
+    cal.appendChild(h);
+  }
+
+  // 计算该月第一天是星期几（0=周日，转成周一起始：1=周一...7=周日）
+  const firstDay = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+  const offset = firstDay === 0 ? 6 : firstDay - 1; // 周一起始的偏移
+  const days = daysInMonth(year, month);
+
+  // 本周的起止日期（用于整行描边）
+  const todayUTC = Date.UTC(today.year, today.month - 1, today.day);
+  const weekStart = new Date(todayUTC - ((todayUTC - Date.UTC(1970, 0, 5)) % 7) * 86400000); // 周一为起
+  const weekEnd = weekStart.getTime() + 6 * 86400000;
+
+  // 空白格
+  for (let i = 0; i < offset; i++) {
+    const blank = document.createElement('div');
+    blank.className = 'dc-day blank';
+    cal.appendChild(blank);
+  }
+
+  // 日期格
+  for (let day = 1; day <= days; day++) {
+    const cell = document.createElement('div');
+    cell.className = 'dc-day';
+    const cellUTC = Date.UTC(year, month - 1, day);
+    const cmp = year < today.year ? -1 : year > today.year ? 1 : compareYMD({ year, month, day }, today);
+
+    if (cmp < 0) cell.classList.add('past');
+    else if (cmp === 0) cell.classList.add('today');
+    if (year === today.year && month === today.month && cellUTC >= weekStart.getTime() && cellUTC <= weekEnd) {
+      cell.classList.add('this-week'); // 本周整行 accent
+    }
+
+    // 里程碑
+    const ms = findMilestones(month, day, year);
+    if (ms.length > 0) {
+      cell.classList.add('milestone');
+      if (ms[0].done) cell.classList.add('milestone-done');
+      cell.appendChild(createMilestoneIcon(ms[0].icon));
+    }
+
+    const num = document.createElement('span');
+    num.className = 'num';
+    num.textContent = String(day);
+    if (cmp === 0) num.classList.add('today-num');
+    cell.appendChild(num);
+
+    cell.title = buildDayTitle(year, month, day);
+    cal.appendChild(cell);
+  }
 }
 
 /** F-05：键盘导航年格（方向键移动选中，Enter 切月表，Esc 回今年）。
@@ -846,6 +976,14 @@ function bindEvents() {
   // F-05：年格键盘导航（委托绑定，仅一次）
   bindGridKeydown();
 
+  // V1：钻取入口与退出
+  $('drill-entry').addEventListener('click', () => {
+    if (viewYear !== null) openDrill(viewYear, resolveToday());
+  });
+  $('drill-back').addEventListener('click', () => {
+    closeDrill(parseISODate(settings.birthdate), resolveToday());
+  });
+
   // 设置入口：打开悬浮弹窗（遮罩点击关闭只在弹窗挂载时绑定一次，见 openSettingsModal）
   $('settings-btn').addEventListener('click', openSettingsModal);
 
@@ -855,6 +993,11 @@ function bindEvents() {
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      // V1：钻取视图打开时，Esc 优先退出钻取
+      if (drillYear !== null) {
+        closeDrill(parseISODate(settings.birthdate), resolveToday());
+        return;
+      }
       closeSettingsModal();
       closeReviewCard();
       closeLangMenu();
