@@ -49,6 +49,9 @@ async function init() {
     renderPage();
   }
 
+  // 开发预览：?drill=YYYY-MM 直接进入钻取视图
+  if (IS_DEV) applyDevDrillParam();
+
   bindEvents();
 
   // 开发预览：?settings=open 直接打开设置弹窗（无头截图无法点击，以此截取弹窗态）
@@ -273,6 +276,7 @@ function switchYear(y, year, birth, today) {
   const target = $('grid').querySelector(`.cell.year[data-year="${focusYear}"]`);
   if (target) target.focus();
   updateDrillEntry();
+  updateDrillUrl();
 }
 
 /* ---------- V1：层级钻取 ---------- */
@@ -294,7 +298,9 @@ function openDrill(year, today) {
   drillMonth = null;
   $('grid').closest('.card').hidden = true;
   $('drill-view').hidden = false;
+  $('drill-back').focus();
   renderDrill(today);
+  updateDrillUrl();
 }
 
 /** 退出钻取视图，回层级 0 */
@@ -305,6 +311,11 @@ function closeDrill(birth, today) {
   $('grid').closest('.card').hidden = false;
   buildGrid(birth, today);
   updateDrillEntry();
+  updateDrillUrl();
+  const focusYear = viewYear ?? today.year;
+  const target = $('grid').querySelector(`.cell.year[data-year="${focusYear}"]`);
+  if (target) target.focus();
+  else $('settings-btn').focus();
 }
 
 /** 渲染钻取视图：年份标题 + 12 月格 + 当前月周历 */
@@ -322,10 +333,12 @@ function renderDrill(today) {
     seg.className = 'drill-month' + (drillMonth === m ? ' active' : '');
     if (year === today.year && m === today.month) seg.classList.add('current');
     seg.dataset.month = String(m);
+    seg.setAttribute('aria-label', t('ms.yearly', { month: m, day: 1 }).replace('1日', ''));
     seg.innerHTML = `<span class="dm-num">${m}</span><span class="dm-name">${monthName(m)}</span>`;
     seg.addEventListener('click', () => {
       drillMonth = m;
       renderDrill(today);
+      updateDrillUrl();
     });
     monthsEl.appendChild(seg);
   }
@@ -634,11 +647,20 @@ function yearLabel(year) {
   return year < 0 ? t('history.bce', { y: -year }) : t('history.ce', { y: year });
 }
 
+/** 判定里程碑在当前展示年份下是否已达成。
+ *  一次性里程碑：doneAt 有值即达成；
+ *  每年重复里程碑：doneAt 等于展示年份才视为本年度已达成（跨年自动重置）。 */
+function isMilestoneDone(m, year) {
+  if (!m.done && !m.doneAt) return false;
+  if (m.year != null) return !!m.doneAt;
+  return String(m.doneAt) === String(year);
+}
+
 /** 匹配某月某日的里程碑：year 为 null 表示每年重复 */
 function findMilestones(month, day, year) {
-  return settings.milestones.filter(
-    (m) => m.month === month && m.day === day && (m.year == null || m.year === year)
-  );
+  return settings.milestones
+    .filter((m) => m.month === month && m.day === day && (m.year == null || m.year === year))
+    .map((m) => ({ ...m, done: isMilestoneDone(m, year) }));
 }
 
 /* ---------- F-09：纪念日倒计时 ---------- */
@@ -731,7 +753,9 @@ function renderNotable(birth, today) {
 /* ---------- F-08：年度复盘卡 ---------- */
 
 /** 检查是否需要弹出复盘卡：生日优先于跨年；展示后写回标记，同一次 render 只弹一张。
- *  跨年复盘只在 1 月触发（跨年时刻的仪式）；其余时间想看可点设置面板「查看年度复盘」。 */
+ *  跨年复盘只在 1 月触发（跨年时刻的仪式）；其余时间想看可点设置面板「查看年度复盘」。
+ *  推迟提醒：用户点「7 天后再提醒」后，lastReviewYear 先设为推迟前的年份，并把 snoozeUntil
+ *  设为 7 天后；snooze 期间不再弹出。 */
 function checkReviewTrigger(birth, today) {
   const disabled = settings.reviewDisabled || {};
   const isBirthday =
@@ -743,10 +767,13 @@ function checkReviewTrigger(birth, today) {
     trySaveSettings({ lastBirthdayReviewYear: today.year });
     return;
   }
+  const snoozeUntil = settings.reviewSnoozeUntil ? parseISODate(settings.reviewSnoozeUntil) : null;
+  const isSnoozed = snoozeUntil && compareYMD(today, snoozeUntil) < 0;
   const isNewYear =
     today.month === 1 &&
     today.year > (settings.lastReviewYear || 0) &&
-    !disabled.year;
+    !disabled.year &&
+    !isSnoozed;
   if (isNewYear) {
     showReviewCard('year', today.year - 1, birth);
     trySaveSettings({ lastReviewYear: today.year });
@@ -801,6 +828,7 @@ function showReviewCard(type, year, birth) {
     ${msHtml}
     <div class="review-actions">
       <button class="review-close" type="button">${escapeHtml(t('review.close'))}</button>
+      ${type === 'year' ? `<button class="review-snooze" type="button">${escapeHtml(t('review.snooze'))}</button>` : ''}
       <label class="review-dont-remind"><input type="checkbox" data-review-disable="${disabledKey}"><span>${escapeHtml(t('review.dontRemind'))}</span></label>
     </div>
   `;
@@ -809,10 +837,24 @@ function showReviewCard(type, year, birth) {
 
   // 关闭按钮
   card.querySelector('.review-close').addEventListener('click', () => closeReviewCard());
+  // 7 天后提醒（仅跨年复盘）
+  const snoozeBtn = card.querySelector('.review-snooze');
+  if (snoozeBtn) {
+    snoozeBtn.addEventListener('click', () => {
+      // 推迟：lastReviewYear 回退一年（让下一年仍可触发），并设置 snoozeUntil 为 7 天后
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      const snoozeUntil = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      trySaveSettings({ lastReviewYear: year, reviewSnoozeUntil: snoozeUntil });
+      closeReviewCard();
+    });
+  }
   // 不再提醒
   card.querySelector('[data-review-disable]').addEventListener('change', (e) => {
     const key = e.target.dataset.reviewDisable;
     const patch = { reviewDisabled: { ...(settings.reviewDisabled || {}), [key]: e.target.checked } };
+    // 用户主动选择「不再提醒」时清空 snooze
+    if (e.target.checked) patch.reviewSnoozeUntil = '';
     trySaveSettings(patch);
   });
 }
@@ -1004,6 +1046,20 @@ function bindEvents() {
     }
   });
 
+  // V1：钻取视图键盘导航（月份选择 + 月历内方向键移动焦点）
+  $('drill-view').addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const active = document.activeElement;
+      if (active?.classList.contains('drill-month')) {
+        e.preventDefault();
+        const months = Array.from($('drill-months').children);
+        const idx = months.indexOf(active);
+        const next = e.key === 'ArrowRight' ? idx + 1 : idx - 1;
+        if (next >= 0 && next < months.length) months[next].focus();
+      }
+    }
+  });
+
   // 设置页修改后实时套用
   onSettingsChanged((next) => {
     settings = next;
@@ -1070,6 +1126,41 @@ async function changeLanguage(lang) {
 
 function escapeHtml(str) {
   return str.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* ---------- V1：钻取视图 URL 同步 ---------- */
+
+/** 开发预览：把当前钻取状态同步到 URL query，便于截图与分享。
+ *  仅在无扩展环境下改写 ?drill=YYYY-MM，不污染真实用户的历史记录。 */
+function updateDrillUrl() {
+  if (!IS_DEV) return;
+  const url = new URL(location.href);
+  if (drillYear == null) {
+    url.searchParams.delete('drill');
+  } else {
+    const m = drillMonth ? String(drillMonth).padStart(2, '0') : '';
+    url.searchParams.set('drill', m ? `${drillYear}-${m}` : String(drillYear));
+  }
+  history.replaceState(null, '', url.toString());
+}
+
+/** 开发预览：初始化时读取 ?drill=YYYY-MM 并直接进入钻取视图 */
+function applyDevDrillParam() {
+  const raw = new URLSearchParams(location.search).get('drill');
+  if (!raw) return;
+  const [yearStr, monthStr] = raw.split('-');
+  const year = Number(yearStr);
+  const month = monthStr ? Number(monthStr) : 0;
+  if (!year || year < 1949 || year > 2100) return;
+  if (month && (month < 1 || month > 12)) return;
+  const birth = parseISODate(settings.birthdate);
+  const today = resolveToday();
+  viewYear = year;
+  drillYear = year;
+  drillMonth = month || null;
+  $('grid').closest('.card').hidden = true;
+  $('drill-view').hidden = false;
+  renderDrill(today);
 }
 
 /* ---------- 设置悬浮弹窗 ---------- */

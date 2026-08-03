@@ -371,7 +371,9 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
 
     for (const ms of sorted) {
       const item = document.createElement('li');
-      item.className = 'sp-ms-row' + (ms.done ? ' done' : '');
+      const currentYear = new Date().getFullYear();
+      const isDone = ms.year != null ? !!ms.doneAt : String(ms.doneAt) === String(currentYear);
+      item.className = 'sp-ms-row' + (isDone ? ' done' : '');
 
       // A4：达成标记勾选框
       const done = document.createElement('label');
@@ -379,11 +381,17 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
       done.title = t('sp.msDone');
       const doneInput = document.createElement('input');
       doneInput.type = 'checkbox';
-      doneInput.checked = !!ms.done;
+      doneInput.checked = isDone;
       doneInput.addEventListener('change', () => {
+        const today = new Date();
+        const doneAt = doneInput.checked
+          ? (ms.year != null
+            ? `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+            : String(today.getFullYear()))
+          : '';
         save({
           milestones: settings.milestones.map((m) =>
-            m.id === ms.id ? { ...m, done: doneInput.checked } : m
+            m.id === ms.id ? { ...m, doneAt, done: !!doneAt } : m
           ),
         });
       });
@@ -490,7 +498,8 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
         year: $('ms-recurring').checked ? null : parsed.year,
         icon: selectedIcon,
         label,
-        done: false, // A4：默认未达成
+        done: false,
+        doneAt: '', // A4：默认未达成
       };
 
       save({ milestones: [...settings.milestones, milestone] });
@@ -622,5 +631,9 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
     tip.classList.add('show');
     clearTimeout(saveTipTimer);
     saveTipTimer = setTimeout(() => tip.classList.remove('show'), 1500);
+  }
+
+  function pad(n) {
+    return String(n).padStart(2, '0');
   }
 }

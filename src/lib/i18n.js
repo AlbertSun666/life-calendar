@@ -269,6 +269,15 @@ const STRINGS = {
   'sp.reviewReplay': {
     'zh-CN': '查看年度复盘', 'zh-TW': '查看年度復盤', ja: '年間レビューを見る', ko: '연간 리뷰 보기', en: 'View year-in-review',
   },
+  'review.close': {
+    'zh-CN': '关闭', 'zh-TW': '關閉', ja: '閉じる', ko: '닫기', en: 'Close',
+  },
+  'review.snooze': {
+    'zh-CN': '7 天后再提醒', 'zh-TW': '7 天後再提醒', ja: '7 日後に再通知', ko: '7일 후 다시 알림', en: 'Remind me in 7 days',
+  },
+  'review.dontRemind': {
+    'zh-CN': '今年不再提醒', 'zh-TW': '今年不再提醒', ja: '今年は通知しない', ko: '올해 더 이상 알리지 않음', en: "Don't remind this year",
+  },
   'sp.dataHint': {
     'zh-CN': '导出会把设置、重要日期、自定义主题与背景图打包为一个 JSON 文件；换设备或重装后可用导入还原。',
     'zh-TW': '匯出會把設定、重要日期、自訂主題與背景圖打包為一個 JSON 檔案；換裝置或重裝後可用匯入還原。',
