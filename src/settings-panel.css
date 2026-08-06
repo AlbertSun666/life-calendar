@@ -41,6 +41,18 @@
 }
 .sp-save-tip.show { opacity: 1; }
 
+/* 保存/导入失败提示条（TD-03）：面板顶部红色提示 */
+.sp-error {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(195, 39, 43, 0.35);
+  border-radius: 8px;
+  background: rgba(195, 39, 43, 0.08);
+  color: #c3272b;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
 .sp-section {
   margin-top: 28px;
 }
@@ -143,6 +155,7 @@ input[type="date"].sp-input {
   gap: 8px;
   cursor: pointer;
   font-size: 14px;
+  color: var(--text, #1f1f1f);
 }
 .sp-check input {
   appearance: none;
@@ -288,6 +301,52 @@ input[type="date"].sp-input {
 }
 .sp-ms-row:last-child { border-bottom: none; }
 
+/* A4：达成勾选框 */
+.sp-ms-done {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.sp-ms-done input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1.5px solid var(--panel-line, #c8c8c5);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.15s, background 0.15s;
+}
+.sp-ms-done input:checked {
+  border-color: var(--accent, #1f1f1f);
+  background: var(--accent, #1f1f1f);
+}
+.sp-ms-done input:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1.5px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--accent-on, #ffffff);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+/* A4：达成态——文字删除线 + 淡化，强化"已完成"的仪式感 */
+.sp-ms-row.done .sp-ms-label {
+  text-decoration: line-through;
+  color: var(--muted, #8b8b8b);
+  opacity: 0.7;
+}
+.sp-ms-row.done .sp-ms-icon {
+  opacity: 0.55;
+}
+
 .sp-ms-date {
   width: 96px;
   flex: none;
@@ -327,6 +386,33 @@ input[type="date"].sp-input {
   flex-direction: column;
   gap: 10px;
   padding: 14px 0 0;
+}
+/* A5：模板包按钮行 */
+.sp-ms-templates {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 4px;
+}
+.sp-ms-templates-label {
+  font-size: 12px;
+  color: var(--muted, #8b8b8b);
+  margin-right: 2px;
+}
+.sp-ms-tpl {
+  border: 1px solid var(--panel-line, #d5d5d2);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text, #1f1f1f);
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.sp-ms-tpl:hover {
+  border-color: var(--accent, #1f1f1f);
+  color: var(--accent, #1f1f1f);
 }
 /* 第一行：日期、事件名称、每年重复、新增按钮 */
 .sp-ms-form-row {

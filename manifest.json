@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "人生日历 Life Calendar",
-  "version": "0.3.0",
+  "version": "0.7.0",
   "description": "把一生画成一张表：看看已经走过的，和还剩下的日子。",
   "author": "AlbertSun",
   "permissions": ["storage"],

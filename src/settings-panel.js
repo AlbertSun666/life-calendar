@@ -2,11 +2,21 @@
 // mountSettings(root, { onClose, onSaved, onReOnboard })
 
 import { MILESTONE_ICONS, MAX_MILESTONES } from './lib/constants.js';
-import { getSettings, saveSettings, getBgImage, saveBgImage, deleteBgImage } from './lib/storage.js';
-import { parseISODate } from './lib/date.js';
+import {
+  getSettings,
+  saveSettings,
+  getBgImage,
+  saveBgImage,
+  deleteBgImage,
+  exportData,
+  importData,
+  downloadBlob,
+} from './lib/storage.js';
+import { parseISODate, todayInZone } from './lib/date.js';
 import { MILESTONE_SVGS } from './lib/icons.js';
 import { THEME_PRESETS, allThemes, resolveTheme } from './lib/theme-presets.js';
 import { openThemeEditor } from './theme-editor.js';
+import { renderGridPNG } from './lib/grid-to-png.js';
 import { t } from './lib/i18n.js';
 
 // 自定义主题数量上限（顶栏快速切换最多显示 5 预制 + 5 自定义）
@@ -18,6 +28,8 @@ function template() {
     <h1 class="sp-title">${t('sp.title')}</h1>
     <span class="sp-save-tip" data-sp="save-tip">${t('sp.saved')}</span>
   </div>
+
+  <p class="sp-error" data-sp="error" role="alert" hidden></p>
 
   <section class="sp-section">
     <h2 class="sp-section-title">${t('sp.basic')}</h2>
@@ -69,12 +81,32 @@ function template() {
         <span class="sp-range-value" data-sp="glass-value"></span>
       </span>
     </div>
+    <div class="sp-row sp-row-pair">
+      <label class="sp-check sp-row-check"><input type="checkbox" data-sp="show-stages"><span>${t('sp.showStages')}</span></label>
+      <span class="sp-divider" aria-hidden="true"></span>
+      <span class="sp-row-check sp-row-inline">
+        <label class="sp-row-label-inline" for="sp-stats-unit">${t('sp.statsUnit')}</label>
+        <select class="sp-select" id="sp-stats-unit" data-sp="stats-unit">
+          <option value="day">${t('sp.unitDay')}</option>
+          <option value="week">${t('sp.unitWeek')}</option>
+          <option value="month">${t('sp.unitMonth')}</option>
+        </select>
+      </span>
+    </div>
   </section>
 
   <section class="sp-section">
     <h2 class="sp-section-title">${t('sp.ms')}</h2>
     <ul class="sp-ms-list" data-sp="ms-list"></ul>
     <form class="sp-ms-form" data-sp="ms-form">
+      <div class="sp-ms-templates" data-sp="ms-templates">
+        <span class="sp-ms-templates-label">${t('sp.msTemplate')}</span>
+        <button class="sp-ms-tpl" type="button" data-tpl="mom">${t('tpl.mom')}</button>
+        <button class="sp-ms-tpl" type="button" data-tpl="dad">${t('tpl.dad')}</button>
+        <button class="sp-ms-tpl" type="button" data-tpl="anniv">${t('tpl.anniv')}</button>
+        <button class="sp-ms-tpl" type="button" data-tpl="baby">${t('tpl.baby')}</button>
+        <button class="sp-ms-tpl" type="button" data-tpl="goal">${t('tpl.goal')}</button>
+      </div>
       <div class="sp-ms-form-row">
         <input class="sp-input" type="date" data-sp="ms-date" min="1949-01-01" max="${new Date().getFullYear()}-12-31" required>
         <input class="sp-input sp-ms-label-input" type="text" data-sp="ms-label" maxlength="20" autocomplete="off" placeholder="${t('sp.msLabelPh')}" required>
@@ -88,6 +120,19 @@ function template() {
     </form>
   </section>
 
+  <section class="sp-section">
+    <h2 class="sp-section-title">${t('sp.data')}</h2>
+    <p class="sp-hint">${t('sp.dataHint')}</p>
+    <div class="sp-theme-actions">
+      <button class="sp-btn sp-btn-ghost" data-sp="export-json">${t('sp.exportData')}</button>
+      <button class="sp-btn sp-btn-ghost" data-sp="import-json">${t('sp.importData')}</button>
+      <button class="sp-btn sp-btn-ghost" data-sp="export-csv">${t('sp.exportCsv')}</button>
+      <button class="sp-btn sp-btn-ghost" data-sp="export-image">${t('sp.exportImage')}</button>
+      <button class="sp-btn sp-btn-ghost" data-sp="review-replay">${t('sp.reviewReplay')}</button>
+      <input class="sp-import-file" type="file" accept="application/json,.json" data-sp="import-file" hidden>
+    </div>
+  </section>
+
   <div class="sp-actions">
     <button class="sp-btn sp-btn-ghost" data-sp="re-onboard">${t('sp.reOnboard')}</button>
     <button class="sp-btn sp-btn-primary" data-sp="done">${t('sp.done')}</button>
@@ -97,10 +142,11 @@ function template() {
 `;
 }
 
-export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}) {
+export async function mountSettings(root, { onClose, onSaved, onReOnboard, onReviewReplay } = {}) {
   let settings = await getSettings();
   let selectedIcon = MILESTONE_ICONS[0];
   let saveTipTimer = null;
+  let errorTimer = null;
 
   root.classList.add('sp-root');
 
@@ -151,6 +197,8 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}
     $('show-quote').checked = settings.showQuote;
     $('show-history').checked = settings.showHistory;
     $('show-bg').checked = settings.showBgImage !== false;
+    $('show-stages').checked = settings.showStages === true;
+    $('stats-unit').value = settings.statsUnit || 'day';
     $('glass').value = settings.glass ?? 50;
     updateGlassLabel();
     updateThemeCustomOps();
@@ -323,7 +371,31 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}
 
     for (const ms of sorted) {
       const item = document.createElement('li');
-      item.className = 'sp-ms-row';
+      const currentYear = new Date().getFullYear();
+      const isDone = ms.year != null ? !!ms.doneAt : String(ms.doneAt) === String(currentYear);
+      item.className = 'sp-ms-row' + (isDone ? ' done' : '');
+
+      // A4：达成标记勾选框
+      const done = document.createElement('label');
+      done.className = 'sp-ms-done';
+      done.title = t('sp.msDone');
+      const doneInput = document.createElement('input');
+      doneInput.type = 'checkbox';
+      doneInput.checked = isDone;
+      doneInput.addEventListener('change', () => {
+        const today = new Date();
+        const doneAt = doneInput.checked
+          ? (ms.year != null
+            ? `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`
+            : String(today.getFullYear()))
+          : '';
+        save({
+          milestones: settings.milestones.map((m) =>
+            m.id === ms.id ? { ...m, doneAt, done: !!doneAt } : m
+          ),
+        });
+      });
+      done.append(doneInput);
 
       const date = document.createElement('span');
       date.className = 'sp-ms-date';
@@ -348,7 +420,7 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}
         save({ milestones: settings.milestones.filter((m) => m.id !== ms.id) });
       });
 
-      item.append(date, icon, label, del);
+      item.append(done, date, icon, label, del);
       list.appendChild(item);
     }
   }
@@ -393,6 +465,15 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}
       save({ showBgImage: e.target.checked })
     );
 
+    $('show-stages').addEventListener('change', (e) =>
+      save({ showStages: e.target.checked })
+    );
+
+    // G1：统计单位切换（天/周/月）
+    $('stats-unit').addEventListener('change', (e) =>
+      save({ statsUnit: e.target.value })
+    );
+
     // 毛玻璃滑杆：拖动实时更新读数，防抖保存（保存后主页面实时预览）
     let glassTimer = null;
     $('glass').addEventListener('input', (e) => {
@@ -417,12 +498,37 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}
         year: $('ms-recurring').checked ? null : parsed.year,
         icon: selectedIcon,
         label,
+        done: false,
+        doneAt: '', // A4：默认未达成
       };
 
       save({ milestones: [...settings.milestones, milestone] });
       $('ms-label').value = '';
       $('ms-date').value = '';
       $('ms-label').focus();
+    });
+
+    // A5：里程碑模板包——点击模板填入草稿（日期留空待填，图标+标签预填）
+    const TPL_MAP = {
+      mom:    { label: t('tpl.mom'),    icon: 'cake',  recurring: true },
+      dad:    { label: t('tpl.dad'),    icon: 'cake',  recurring: true },
+      anniv:  { label: t('tpl.anniv'), icon: 'rings', recurring: true },
+      baby:   { label: t('tpl.baby'),  icon: 'heart', recurring: false },
+      goal:   { label: t('tpl.goal'),  icon: 'flag',  recurring: false },
+    };
+    document.querySelectorAll('.sp-ms-tpl').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tpl = TPL_MAP[btn.dataset.tpl];
+        if (!tpl) return;
+        $('ms-label').value = tpl.label;
+        $('ms-recurring').checked = tpl.recurring;
+        selectedIcon = tpl.icon;
+        // 同步图标选择器高亮
+        $('icon-picker').querySelectorAll('.sp-icon-btn').forEach((b) =>
+          b.classList.toggle('selected', b.dataset.icon === tpl.icon)
+        );
+        $('ms-date').focus();
+      });
     });
 
     // 底部按钮
@@ -432,17 +538,92 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}
     $('done').addEventListener('click', () => {
       if (onClose) onClose();
     });
+
+    // 数据导出 / 导入 / CSV / 图片 / 复盘重看
+    $('export-json').addEventListener('click', exportJson);
+    $('export-csv').addEventListener('click', exportCsv);
+    $('export-image').addEventListener('click', exportImage);
+    $('import-json').addEventListener('click', () => $('import-file').click());
+    $('import-file').addEventListener('change', importFile);
+    if (onReviewReplay) $('review-replay').addEventListener('click', onReviewReplay);
   }
 
   /* ---------- 保存 ---------- */
 
   async function save(patch) {
-    settings = await saveSettings(patch);
-    buildThemeOptions();
-    updateThemeCustomOps();
-    renderMilestoneList();
-    showSaveTip();
-    if (onSaved) onSaved(settings);
+    try {
+      settings = await saveSettings(patch);
+      buildThemeOptions();
+      updateThemeCustomOps();
+      renderMilestoneList();
+      showSaveTip();
+      if (onSaved) onSaved(settings);
+    } catch (err) {
+      // TD-03：写入失败（配额超限等）时在面板顶部给出明确提示，而非静默失败
+      showError(t('sp.saveFailed'));
+    }
+  }
+
+  /* ---------- 数据导出 / 导入 / CSV ---------- */
+
+  function showError(message) {
+    const el = $('error');
+    el.textContent = message;
+    el.hidden = false;
+    clearTimeout(errorTimer);
+    errorTimer = setTimeout(() => (el.hidden = true), 8000);
+  }
+
+  async function exportJson() {
+    try {
+      const json = await exportData();
+      const stamp = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+      downloadBlob(new Blob([json], { type: 'application/json' }), `life-calendar-backup-${stamp}.json`);
+    } catch (err) {
+      showError(t('sp.exportFailed'));
+    }
+  }
+
+  async function importFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // 允许重复选择同一文件
+    if (!file) return;
+    try {
+      const text = await file.text();
+      await importData(text);
+      location.reload();
+    } catch (err) {
+      // 区分：配额不足（文件合法但空间不够）vs 文件非法
+      const code = err && err.message;
+      if (code === 'QUOTA') showError(t('sp.saveFailed'));
+      else showError(t('sp.importInvalid'));
+    }
+  }
+
+  function exportCsv() {
+    const BOM = '\uFEFF'; // UTF-8 BOM：让 Excel 正确识别中文
+    const esc = (v) => `"${String(v ?? '').replaceAll('"', '""')}"`;
+    const rows = [[t('csv.date'), t('csv.label'), t('csv.icon'), t('csv.recurring'), t('csv.done')]];
+    for (const ms of settings.milestones) {
+      const date = ms.year == null
+        ? `${ms.month}-${ms.day}`
+        : `${ms.year}-${ms.month}-${ms.day}`;
+      rows.push([date, ms.label || t('day.milestone'), t(`icon.${ms.icon}`), ms.year == null ? t('csv.yearly') : '', ms.done ? t('csv.yes') : t('csv.no')]);
+    }
+    const csv = BOM + rows.map((r) => r.map(esc).join(',')).join('\r\n');
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'milestones.csv');
+  }
+
+  // F-10：导出当前人生表为 PNG
+  async function exportImage() {
+    try {
+      const today = todayInZone(settings.timezone);
+      const blob = await renderGridPNG(settings, today);
+      const stamp = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+      downloadBlob(blob, `life-calendar-${stamp}.png`);
+    } catch (err) {
+      showError(t('sp.imageExportFailed'));
+    }
   }
 
   function showSaveTip() {
@@ -450,5 +631,9 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard } = {}
     tip.classList.add('show');
     clearTimeout(saveTipTimer);
     saveTipTimer = setTimeout(() => tip.classList.remove('show'), 1500);
+  }
+
+  function pad(n) {
+    return String(n).padStart(2, '0');
   }
 }

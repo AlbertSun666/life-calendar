@@ -32,21 +32,32 @@ function luminance(hex) {
  * @param bgUrl 背景图地址（builtin 相对路径 / dataURL）；null 表示无图
  * @param glass 毛玻璃程度 0-100：50=主题原始；<50 趋向实底；>50 趋向透明磨砂
  */
+/** 毛玻璃 alpha 调整：glass 50=原始；<50 趋实（向 1 插值）；>50 趋透（压低 alpha）。
+ *  导出供 canvas 渲染（F-10）与 CSS 生成共用，保证图片与屏幕一致 */
+export function adjustGlassAlpha(alpha, glass = 50) {
+  const g = Math.max(0, Math.min(100, glass));
+  if (g < 50) {
+    const k = (50 - g) / 50; // 0→1 变实
+    return alpha + (1 - alpha) * k;
+  }
+  if (g > 50) {
+    const k = (g - 50) / 50; // 0→1 变透
+    return alpha * (1 - k * 0.92);
+  }
+  return alpha;
+}
+
 export function buildThemeCSS(theme, bgUrl, glass = 50) {
   const c = theme.colors;
   const hasGlyph = theme.glyph && theme.glyph !== 'none';
 
   // 毛玻璃模型：50 为原始设计；左半向 1 插值（变实），右半按比例压透并增强模糊
-  let adjustAlpha = (a) => a;
+  const adjustAlpha = (a) => adjustGlassAlpha(a, glass);
   let blur = 0;
   let saturate = 1;
   const g = Math.max(0, Math.min(100, glass));
-  if (g < 50) {
-    const k = (50 - g) / 50; // 0→1 变实
-    adjustAlpha = (a) => a + (1 - a) * k;
-  } else if (g > 50) {
+  if (g > 50) {
     const k = (g - 50) / 50; // 0→1 变透
-    adjustAlpha = (a) => a * (1 - k * 0.92);
     blur = 20 * k;
     saturate = 1 + k * 0.35;
   }

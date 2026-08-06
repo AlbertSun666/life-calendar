@@ -1,7 +1,9 @@
 // 每日一句：关于时间、生命与珍惜当下的句子（本地预置，离线可用）
-// 按「一年中的第几天」取模轮换，同一天所有人看到同一句
+// B4：按语言分池，各语言用当地文化名言；按「一年中的第几天」取模轮换
+// 缺池时回退 zh-CN，保证任何语言都有内容
 
-export const QUOTES = [
+export const QUOTES = {
+  'zh-CN': [
   { text: '盛年不重来，一日难再晨。及时当勉励，岁月不待人。', author: '陶渊明' },
   { text: '悟已往之不谏，知来者之可追。', author: '陶渊明' },
   { text: '纵浪大化中，不喜亦不惧。应尽便须尽，无复独多虑。', author: '陶渊明' },
@@ -92,4 +94,175 @@ export const QUOTES = [
   { text: '把握今天。', author: '贺拉斯 Carpe diem' },
   { text: '你能在其中获得乐趣的浪费，就不算浪费时间。', author: '罗素' },
   { text: '人是一根能思想的苇草。', author: '帕斯卡' },
-];
+  ],
+
+  // 繁体：与简中共用内容，仅繁体化
+  'zh-TW': [
+    { text: '盛年不重來，一日難再晨。及時當勉勵，歲月不待人。', author: '陶淵明' },
+    { text: '悟已往之不諫，知來者之可追。', author: '陶淵明' },
+    { text: '逝者如斯夫，不捨晝夜。', author: '《論語》' },
+    { text: '少壯不努力，老大徒傷悲。', author: '漢樂府《長歌行》' },
+    { text: '對酒當歌，人生幾何！譬如朝露，去日苦多。', author: '曹操' },
+    { text: '年年歲歲花相似，歲歲年年人不同。', author: '劉希夷' },
+    { text: '君不見高堂明鏡悲白髮，朝如青絲暮成雪。', author: '李白' },
+    { text: '長風破浪會有時，直掛雲帆濟滄海。', author: '李白' },
+    { text: '會當凌絕頂，一覽眾山小。', author: '杜甫' },
+    { text: '讀書不覺已春深，一寸光陰一寸金。', author: '王貞白' },
+    { text: '花開堪折直須折，莫待無花空折枝。', author: '杜秋娘' },
+    { text: '莫等閒、白了少年頭，空悲切。', author: '岳飛' },
+    { text: '少年易老學難成，一寸光陰不可輕。', author: '朱熹' },
+    { text: '人生如逆旅，我亦是行人。', author: '蘇軾' },
+    { text: '且將新火試新茶，詩酒趁年華。', author: '蘇軾' },
+    { text: '明日復明日，明日何其多。我生待明日，萬事成蹉跎。', author: '錢福' },
+    { text: '時間就是性命。無端的空耗別人的時間，其實是無異於謀財害命的。', author: '魯迅' },
+    { text: '時間就像海綿裡的水，只要願擠，總還是有的。', author: '魯迅' },
+    { text: '日拱一卒，功不唐捐。', author: '胡適' },
+    { text: '你來人間一趟，你要看看太陽。', author: '海子' },
+    { text: '把活著的每一天，都看作生命的最後一天。', author: '海倫·凱勒' },
+    { text: '你熱愛生命嗎？那麼別浪費時間，因為時間是組成生命的材料。', author: '富蘭克林' },
+    { text: '每一個不曾起舞的日子，都是對生命的辜負。', author: '尼采' },
+    { text: '未經省察的人生不值得過。', author: '蘇格拉底' },
+    { text: '世上只有一種英雄主義，就是在認清生活的真相之後，依然熱愛生活。', author: '羅曼·羅蘭' },
+    { text: '記住你即將死去，是幫助我做出人生重大抉擇的最好方法。', author: '史蒂夫·賈伯斯' },
+    { text: '你的時間有限，所以不要浪費時間去過別人的生活。', author: '史蒂夫·賈伯斯' },
+    { text: '求知若飢，虛心若愚。', author: '《全球目錄》' },
+    { text: '把每一天都當作單獨的一生來活。', author: '塞涅卡' },
+    { text: '人不應恐懼死亡，而應恐懼從未真正開始活過。', author: '馬可·奧勒留' },
+    { text: '對未來的真正慷慨，是把一切獻給現在。', author: '加繆' },
+    { text: '凡是過往，皆為序章。', author: '莎士比亞' },
+    { text: '如果你因錯過太陽而流淚，那麼你也將錯過群星。', author: '泰戈爾' },
+    { text: '生如夏花之絢爛，死如秋葉之靜美。', author: '泰戈爾' },
+    { text: '縱有疾風起，人生不言棄。', author: '保羅·瓦勒里' },
+    { text: '萬物皆有裂痕，那是光照進來的地方。', author: '李歐納·柯恩' },
+    { text: '永遠年輕，永遠熱淚盈眶。', author: '傑克·凱魯亞克' },
+    { text: '每一天，都是你餘生的第一天。', author: '諺語' },
+    { text: '種一棵樹最好的時間是十年前，其次是現在。', author: '非洲諺語' },
+    { text: '記住，人終有一死。', author: '拉丁諺語 Memento mori' },
+    { text: '把握今天。', author: '賀拉斯 Carpe diem' },
+  ],
+
+  // 日本語：日本文化の名言、時間・命・今を生きる（『方丈記』『徒然草』芭蕉・漱石・賢治など）
+  ja: [
+    { text: '古きを温めて新しきを知る', author: '孔子『論語』' },
+    { text: 'ゆく川の流れは絶えずして、しかももとの水にあらず', author: '鴨長明『方丈記』' },
+    { text: 'ゆく川の流れは絶えずして、しかももとの水にあらず。よどみに浮かぶ泡沫は、かつ消えかつ結びて、久しくとどまりたる例なし。', author: '鴨長明『方丈記』' },
+    { text: 'つれづれなるままに、日暮らし、硯にむかひて、心にうつりゆくよしなし事を、そこはかとなく書きつくれば、おかしきことなども多かりけり。', author: '吉田兼好『徒然草』' },
+    { text: '五月雨を集めて早し最上川', author: '松尾芭蕉' },
+    { text: '閑さや岩にしみ入る蝉の声', author: '松尾芭蕉' },
+    { text: '夏草や兵どもが夢の跡', author: '松尾芭蕉' },
+    { text: '旅人と我が名よばれん初しぐれ', author: '松尾芭蕉' },
+    { text: '人間は本来善なるものなり、悪をなすは心の狂ひなるなり', author: '夏目漱石『こころ』' },
+    { text: '明日は明日の風が吹く', author: 'ことわざ' },
+    { text: '雨ニモマケズ風ニモマケズ雪ニモ夏ノ暑サニモマケヌ', author: '宮沢賢治' },
+    { text: '世界が全体として幸福でないうちは、個人の幸福もあり得ない', author: '宮沢賢治『銀河鉄道の夜』' },
+    { text: '誰も彼も他人の事に忙しくて自分の事はほったらかし', author: '太宰治『人間失格』' },
+    { text: '生れた時から「自分」なんてないのだ', author: '太宰治『人間失格』' },
+    { text: '美しく生きようと努める事、それが人生の意味だ', author: '太宰治' },
+    { text: '美しい人生は美しい心から', author: '川端康成' },
+    { text: '人間は孤独であるべきだ', author: '川端康成' },
+    { text: '地獄は人間の心の中にある', author: '芥川龍之介' },
+    { text: '人生は地獄よりも悲惨である。ただし人間は地獄よりも強い', author: '芥川龍之介' },
+    { text: '我々は過去を生きている。未来は我々のうちにある。', author: '三島由紀夫' },
+    { text: '一日を一日として確実に生きる', author: '三島由紀夫' },
+    { text: '過去に執着する者は未来を失う', author: '三島由紀夫' },
+    { text: '人生はただ一度きりの旅', author: '三浦綾子' },
+    { text: '人間は生まれながらにして死を知っている。だからこそ生きる意味を問う', author: '三浦綾子' },
+    { text: '失敗は成功のもと', author: 'ことわざ' },
+    { text: '継続は力なり', author: 'ことわざ' },
+    { text: '石の上にも三年', author: 'ことわざ' },
+    { text: '塵も積もれば山となる', author: 'ことわざ' },
+    { text: '時は金なり', author: 'ことわざ' },
+    { text: '日々の修行を怠るな', author: '宮本武蔵『五輪書』' },
+    { text: '今を生きる。過去に縛られず、未来に怯えず', author: '松下幸之助' },
+    { text: '一日一生、今日を大事に生きる', author: '川瀬敏郎' },
+    { text: '一日を一生と思ふべし', author: '道元禅師' },
+    { text: '生きるということは死ぬことの準備である', author: '小林秀雄' },
+  ],
+
+  // English: 西方世界名言，主题：时间、生命、珍惜当下、memento mori、carpe diem
+  // 英文原文，可查证；译文出处见各 author 标注
+  en: [
+    { text: 'Carpe diem, quam minimum credula postero.', author: 'Horace, Odes I.11' },
+    { text: 'You could leave life right now. Let that determine what you do and say and think.', author: 'Marcus Aurelius, Meditations 2.11' },
+    { text: 'Death hangs over thee. While thou livest, while it is in thy power, be good.', author: 'Marcus Aurelius, Meditations 4.17' },
+    { text: 'Remember that man lives only in the present, in this fleeting instant; all the rest of his life is either past and gone, or not yet revealed.', author: 'Marcus Aurelius, Meditations 3.10' },
+    { text: 'I am endeavouring to live every day as if it were a complete life.', author: 'Seneca, Letters 101' },
+    { text: 'As long as you live, keep learning how to live.', author: 'Seneca, Letters 76' },
+    { text: 'What man can you show me who places any value on his time, who reckons the worth of each day, who understands that he is dying daily?', author: 'Seneca, Letters 1' },
+    { text: 'It is indeed foolish to be unhappy now because you may be unhappy at some future time.', author: 'Seneca, Letters 13' },
+    { text: 'He who should teach men to die would at the same time teach them to live.', author: 'Michel de Montaigne' },
+    { text: 'The thing I fear most is fear.', author: 'Michel de Montaigne, Essays I.18' },
+    { text: 'I want death to find me planting my cabbages.', author: 'Michel de Montaigne' },
+    { text: 'Write it on your heart that every day is the best day in the year.', author: 'Ralph Waldo Emerson' },
+    { text: 'The mass of men lead lives of quiet desperation.', author: 'Henry David Thoreau, Walden' },
+    { text: 'I went to the woods because I wished to live deliberately, to front only the essential facts of life, and see if I could not learn what it had to teach, and not, when I came to die, discover that I had not lived.', author: 'Henry David Thoreau, Walden' },
+    { text: 'I wanted to live deep and suck out all the marrow of life.', author: 'Henry David Thoreau, Walden' },
+    { text: 'How we spend our days is, of course, how we spend our lives.', author: 'Annie Dillard, The Writing Life' },
+    { text: 'Tomorrow, and tomorrow, and tomorrow, creeps in this petty pace from day to day, to the last syllable of recorded time; and all our yesterdays have lighted fools the way to dusty death.', author: 'William Shakespeare, Macbeth' },
+    { text: 'Out, out, brief candle! Life\u2019s but a walking shadow, a poor player that struts and frets his hour upon the stage, and then is heard no more.', author: 'William Shakespeare, Macbeth' },
+    { text: 'Real generosity toward the future consists in giving all to the present.', author: 'Albert Camus, Neither Victims nor Executioners' },
+    { text: 'My field, said Goethe, is time.', author: 'Albert Camus, The Myth of Sisyphus' },
+    { text: 'The eternal silence of these infinite spaces alarms me.', author: 'Blaise Pascal, Pens\u00e9es' },
+    { text: 'Be not swept off your feet by the vividness of the impression, but say, "Impression, wait for me a little. Let me see what you are and what you represent."', author: 'Epictetus' },
+    { text: 'Remembering that I\u2019ll be dead soon is the most important tool I\u2019ve ever encountered to help me make the big choices in life.', author: 'Steve Jobs, Stanford 2005' },
+    { text: 'Your time is limited, so don\u2019t waste it living someone else\u2019s life.', author: 'Steve Jobs, Stanford 2005' },
+    { text: 'Stay hungry. Stay foolish.', author: 'Steve Jobs, Stanford 2005' },
+    { text: 'Death is very likely the single best invention of Life. It is Life\u2019s change agent. It clears out the old to make way for the new.', author: 'Steve Jobs, Stanford 2005' },
+    { text: 'You\u2019ve got to find what you love. And that is as true for your work as it is for your lovers.', author: 'Steve Jobs, Stanford 2005' },
+    { text: 'Do you want to spend the rest of your life selling sugared water, or do you want a chance to change the world?', author: 'Steve Jobs' },
+    { text: 'This is what you shall do: Love the earth and sun and the animals, despise riches, give alms to every one that asks.', author: 'Walt Whitman' },
+    { text: 'Memento mori.', author: 'Latin maxim (Stoic / Christian monastic tradition)' },
+    { text: 'Tempus fugit.', author: 'Latin maxim (Vergil, Georgics influence)' },
+  ],
+
+  // 한국어: 한국 문학·사상가의 명구를 중심으로, 시간·생명·지금·memento mori 주제
+  // 공개된 시(시비·문집 등)에서 널리 인용되는 구절을 사용하였으며, 번역 명언은 한국어역을 따름
+  ko: [
+    { text: '지금은 싸움이 급하다. 나의 죽음을 알리지 말라.', author: '이순신' },
+    { text: '죽고자 하면 살고, 살고자 하면 죽는다.', author: '이순신' },
+    { text: '나의 이 거사는 동양 평화를 위하여 결행한 것이므로, 한·일 화합에 힘써 동양 평화에 이바지하기 바란다.', author: '안중근' },
+    { text: '한양을 벗어나는 순간 기회는 사라지니, 무슨 일이 있어도 한양에서 버텨라.', author: '정약용' },
+    { text: '님은 갔습니다. 아아, 사랑하는 나의 님은 갔습니다.', author: '한용운' },
+    { text: '아아, 님은 갔지마는 나는 님을 보내지 아니하였습니다.', author: '한용운' },
+    { text: '사랑도 사람의 일이라, 맛날 때에 미리 떠날 것을 염려하고 경계하지 아니한 것은 아니지만, 이렇게 하고 보니 그리워하는 마음이 더 크게 됩니다.', author: '한용운' },
+    { text: '죽음의 굿판을 당장 걷어 치워라.', author: '김지하' },
+    { text: '죽는 날까지 하늘을 우러러 한 점 부끄럼이 없기를, 잎새에 이는 바람에도 나는 괴로워했다.', author: '윤동주' },
+    { text: '괴로웠던 사나이, 행복한 예수 그리스도에게, 처럼 십자가가 허락된다면.', author: '윤동주' },
+    { text: '까마득한 날에 하늘이 처음 열리고, 어데 닭 우는 소리 들렸으랴.', author: '이육사' },
+    { text: '지금 눈 내리고 매화 향기 홀로 아득하니, 내 여기 가난한 노래의 씨를 뿌려라.', author: '이육사' },
+    { text: '다시 천고의 뒤에 백마 타고 오는 초인이 있어, 이 광야에서 목놓아 부르게 하리라.', author: '이육사' },
+    { text: '이러매 눈 감아 생각해 볼밖에, 겨울은 강철로 된 무지갠가 보다.', author: '이육사' },
+    { text: '나는 아직 기다리고 있을 것이며, 다음 모란이 피기까지는.', author: '이육사' },
+    { text: '나 보기가 역겨워 가실 때에는, 말없이 고이 보내 드리오리다.', author: '김소월' },
+    { text: '내가 그의 이름을 불러주기 전에는, 그는 다만 하나의 몸짓에 지나지 않았다.', author: '김춘수' },
+    { text: '내가 그의 이름을 불러주었을 때, 그는 나에게 와 꽃이 되었다.', author: '김춘수' },
+    { text: '우리가 섞인 자리에 꽃이 피고, 그 꽃의 이름은 우리라 부르리다.', author: '김춘수' },
+    { text: '풀이 눕는다. 바람이 불어서 풀이 눕는다.', author: '김수영' },
+    { text: '풀은 눕는다. 바람이 부는 일보다 더 빨리 일어나는 일.', author: '김수영' },
+    { text: '태양을 의논하는 거룩한 이야기는 항상 태양을 등진 곳에서만 비롯하였다.', author: '신석정' },
+    { text: '온 곳으로 되돌아가며, 온 곳으로 되돌아가자.', author: '류시화' },
+    { text: '올 사람이 오고 갈 사람이 가는 것이 세상일인즉, 마음을 다해 사랑하고 미련 없이 보내세.', author: '한국 속담' },
+    { text: '오늘 할 일을 내일로 미루지 마라, 내일은 또 그만의 하늘이 있다.', author: '한국 속담' },
+    { text: '시간은 금이라, 잃은 시간은 다시 오지 않는다.', author: '한국 속담' },
+    { text: '우리는 매일 죽는다. 인간은 잘 죽는 법을 알지 못하는 한 잘 살 수 없다.', author: '세네카' },
+    { text: '사는 동안 무엇을 가졌느냐로 따지지 말고, 무엇을 남겼느냐로 따져라.', author: '세네카' },
+    { text: '진리는 모두에게 열려 있으며, 아직 누구도 그것을 독점한 적이 없다.', author: '세네카' },
+    { text: '나뭇잎들을, 바람이 지표면에 있는 것들을 날려 버린다. 이것들은 인간의 자손들과 같다.', author: '마르쿠스 아우렐리우스' },
+    { text: '존재하는 것들 가운데 어떤 것은 우리에게 달려 있는 것이고, 다른 어떤 것은 우리에게 달려 있지 않다.', author: '에픽테토스' },
+    { text: '죽음을 기억하라. 살아 있는 동안, 살 수 있는 동안, 선한 사람이 되어라.', author: '마르쿠스 아우렐리우스' },
+    { text: '죽음이 아니라, 아직 살아 보지 않은 것을 두려워해야 한다.', author: '마르쿠스 아우렐리우스' },
+    { text: '사는 날을 헛되이 보내지 말아라, 젊음은 다시 오지 않는다.', author: '한국 속담' },
+    { text: '지나간 시간을 붙잡으려 하지 말고, 다가올 시간에 마음을 다하여 살아라.', author: '한국 속담' },
+  ],
+};
+
+/** 取某语言的名言池（缺池回退 zh-CN，保证任何语言都有内容） */
+export function quotesForLang(lang) {
+  return QUOTES[lang] || QUOTES['zh-CN'];
+}
+
+/** 按「一年中的第几天」取当天的名言 */
+export function quoteOfDay(lang, dayOfYear) {
+  const pool = quotesForLang(lang);
+  return pool[((dayOfYear % pool.length) + pool.length) % pool.length];
+}

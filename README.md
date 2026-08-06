@@ -39,6 +39,32 @@
 - 存储分层：配置走 `chrome.storage.sync`（随账号同步）；自定义背景图压缩后存 `chrome.storage.local`（仅本机，sync 的 8KB 单项限额放不下图片）
 - 无后端、无网络请求、无跟踪
 
+## 开发维护
+
+```bash
+# 语法检查 + 单元测试 + 打包文件完整性
+scripts/verify.sh
+
+# 额外截取关键界面截图（需 Chrome）
+scripts/verify.sh --screenshot
+```
+
+### 主题配色取色
+
+所有预制主题均从公有领域画作中提取配色。macOS 用户可直接使用仓库内的 Swift 脚本：
+
+```bash
+xcrun swift tools/extract-colors.swift assets/wave.jpg
+```
+
+非 macOS 环境可用以下替代方案：
+
+- **Python + Pillow + sklearn**：`tools/extract-colors.py`（k-means 聚类取主色 + 明暗筛选）
+- **ImageMagick CLI**：`convert assets/wave.jpg -resize 200x200 -colors 8 -unique-colors txt:` 手动挑选
+- **在线工具**：Adobe Color / Coolors 上传画作后取色，再回填 `src/lib/theme-presets.js` 的 `colors` 字段
+
+无论用哪种方式，取色后都建议用 `scripts/verify.sh --screenshot` 验证实际渲染效果。
+
 ## 画作版权
 
 四个主题背景均为公有领域（Public Domain）作品，经 Wikimedia Commons 获取并已压缩打包至 `assets/`。
