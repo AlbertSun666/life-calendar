@@ -442,6 +442,83 @@ input[type="date"].sp-input {
   box-shadow: 0 0 0 1px var(--accent, #1f1f1f);
 }
 
+/* ---------- B1：时间胶囊 ---------- */
+
+.sp-cap-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sp-cap-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px dashed var(--panel-line, #e4e4e1);
+  font-size: 14px;
+}
+.sp-cap-row:last-child { border-bottom: none; }
+
+/* 解锁日期状态标签 */
+.sp-cap-status {
+  flex: none;
+  width: 110px;
+  font-family: var(--font-num, Didot, 'Bodoni MT', 'Times New Roman', serif);
+  font-size: 12px;
+  color: var(--muted, #8b8b8b);
+}
+/* 已到解锁日但尚未遇见：accent 提示 */
+.sp-cap-status.due {
+  color: var(--accent, #1f1f1f);
+  font-weight: 600;
+}
+/* 已开启的胶囊整行淡化 */
+.sp-cap-row.opened .sp-cap-status,
+.sp-cap-row.opened .sp-cap-text-preview {
+  opacity: 0.55;
+}
+
+.sp-cap-text-preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 写入表单 */
+.sp-cap-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 0 0;
+}
+.sp-cap-text {
+  width: 100%;
+  resize: vertical;
+  min-height: 64px;
+  line-height: 1.7;
+  font-family: inherit;
+}
+.sp-cap-form-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+.sp-cap-date-label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--muted, #8b8b8b);
+}
+.sp-cap-form-row .sp-btn { flex: none; }
+.sp-cap-notice {
+  margin: 0;
+}
+
 .sp-ms-recur { flex: none; white-space: nowrap; font-size: 13px; }
 
 /* ---------- 底部按钮与版本 ---------- */

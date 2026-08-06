@@ -1,7 +1,7 @@
 // 设置面板组件：newtab 悬浮弹窗与 options 页共用
 // mountSettings(root, { onClose, onSaved, onReOnboard })
 
-import { MILESTONE_ICONS, MAX_MILESTONES } from './lib/constants.js';
+import { MILESTONE_ICONS, MAX_MILESTONES, CAPSULE_MAX_YEARS, CAPSULE_MAX_LENGTH, MAX_CAPSULES } from './lib/constants.js';
 import {
   getSettings,
   saveSettings,
@@ -11,8 +11,10 @@ import {
   exportData,
   importData,
   downloadBlob,
+  getCapsules,
+  saveCapsules,
 } from './lib/storage.js';
-import { parseISODate, todayInZone } from './lib/date.js';
+import { parseISODate, todayInZone, compareYMD } from './lib/date.js';
 import { MILESTONE_SVGS } from './lib/icons.js';
 import { THEME_PRESETS, allThemes, resolveTheme } from './lib/theme-presets.js';
 import { openThemeEditor } from './theme-editor.js';
@@ -121,6 +123,22 @@ function template() {
   </section>
 
   <section class="sp-section">
+    <h2 class="sp-section-title">${t('cap.section')}</h2>
+    <p class="sp-hint">${t('cap.hint')}</p>
+    <ul class="sp-cap-list" data-sp="cap-list"></ul>
+    <form class="sp-cap-form" data-sp="cap-form">
+      <textarea class="sp-input sp-cap-text" data-sp="cap-text" maxlength="${CAPSULE_MAX_LENGTH}" rows="3" placeholder="${t('cap.placeholder')}" required></textarea>
+      <div class="sp-cap-form-row">
+        <label class="sp-cap-date-label">${t('cap.unlockDate')}
+          <input class="sp-input" type="date" data-sp="cap-date" required>
+        </label>
+        <button class="sp-btn sp-btn-primary" type="submit">${t('cap.add')}</button>
+      </div>
+      <p class="sp-hint sp-cap-notice">${t('cap.notice')}</p>
+    </form>
+  </section>
+
+  <section class="sp-section">
     <h2 class="sp-section-title">${t('sp.data')}</h2>
     <p class="sp-hint">${t('sp.dataHint')}</p>
     <div class="sp-theme-actions">
@@ -144,6 +162,7 @@ function template() {
 
 export async function mountSettings(root, { onClose, onSaved, onReOnboard, onReviewReplay } = {}) {
   let settings = await getSettings();
+  let capsules = await getCapsules(); // B1：胶囊独立存 storage.local，不随 settings
   let selectedIcon = MILESTONE_ICONS[0];
   let saveTipTimer = null;
   let errorTimer = null;
@@ -168,6 +187,7 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
     buildIconPicker();
     fillForm();
     renderMilestoneList();
+    renderCapsuleList();
     bindEvents();
     fillVersion();
   }
@@ -202,6 +222,13 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
     $('glass').value = settings.glass ?? 50;
     updateGlassLabel();
     updateThemeCustomOps();
+
+    // B1：胶囊解锁日期范围——明天 ～ 5 年后的今天
+    const now = new Date();
+    const min = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const max = new Date(now.getFullYear() + CAPSULE_MAX_YEARS, now.getMonth(), now.getDate());
+    $('cap-date').min = `${min.getFullYear()}-${pad(min.getMonth() + 1)}-${pad(min.getDate())}`;
+    $('cap-date').max = `${max.getFullYear()}-${pad(max.getMonth() + 1)}-${pad(max.getDate())}`;
   }
 
   function buildTimezoneOptions() {
@@ -425,6 +452,71 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
     }
   }
 
+  /* ---------- B1：时间胶囊 ---------- */
+
+  /** 渲染胶囊列表：按解锁日期升序；未到日显示倒计时态，已开启显示「已开启」 */
+  function renderCapsuleList() {
+    const list = $('cap-list');
+    list.textContent = '';
+
+    if (capsules.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'sp-ms-empty';
+      empty.textContent = t('cap.empty');
+      list.appendChild(empty);
+      return;
+    }
+
+    const today = todayInZone(settings.timezone);
+    const sorted = [...capsules].sort((a, b) => (a.unlockDate < b.unlockDate ? -1 : 1));
+
+    for (const cap of sorted) {
+      const item = document.createElement('li');
+      item.className = 'sp-cap-row' + (cap.opened ? ' opened' : '');
+
+      const status = document.createElement('span');
+      status.className = 'sp-cap-status';
+      if (cap.opened) {
+        status.textContent = t('cap.opened');
+      } else {
+        status.textContent = t('cap.waiting', { date: cap.unlockDate });
+        // 已到日子但用户还没打开新标签页遇见：标记为到期
+        const unlock = parseISODate(cap.unlockDate);
+        if (unlock && compareYMD(unlock, today) <= 0) status.classList.add('due');
+      }
+
+      const text = document.createElement('span');
+      text.className = 'sp-cap-text-preview';
+      text.textContent = cap.text.length > 40 ? cap.text.slice(0, 40) + '…' : cap.text;
+      text.title = cap.text;
+
+      const del = document.createElement('button');
+      del.className = 'sp-ms-del';
+      del.type = 'button';
+      del.textContent = t('sp.delete');
+      del.title = t('sp.delete');
+      del.addEventListener('click', async () => {
+        if (!window.confirm(t('cap.deleteConfirm'))) return;
+        await saveCapList(capsules.filter((c) => c.id !== cap.id));
+      });
+
+      item.append(status, text, del);
+      list.appendChild(item);
+    }
+  }
+
+  /** 保存胶囊数组并刷新列表 */
+  async function saveCapList(next) {
+    try {
+      await saveCapsules(next);
+      capsules = next;
+      renderCapsuleList();
+      showSaveTip();
+    } catch (err) {
+      showError(t('sp.saveFailed'));
+    }
+  }
+
   /* ---------- 事件 ---------- */
 
   function bindEvents() {
@@ -480,6 +572,41 @@ export async function mountSettings(root, { onClose, onSaved, onReOnboard, onRev
       updateGlassLabel();
       clearTimeout(glassTimer);
       glassTimer = setTimeout(() => save({ glass: Number(e.target.value) }), 250);
+    });
+
+    // B1：封存时间胶囊
+    $('cap-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (capsules.length >= MAX_CAPSULES) return;
+
+      const text = $('cap-text').value.trim().slice(0, CAPSULE_MAX_LENGTH);
+      const unlock = parseISODate($('cap-date').value);
+      if (!text || !unlock) return;
+
+      const today = todayInZone(settings.timezone);
+      if (compareYMD(unlock, today) <= 0) {
+        showError(t('cap.pastDate'));
+        return;
+      }
+      // §7 承诺边界：最远 5 年
+      if (unlock.year - today.year > CAPSULE_MAX_YEARS ||
+          (unlock.year - today.year === CAPSULE_MAX_YEARS &&
+           (unlock.month > today.month || (unlock.month === today.month && unlock.day > today.day)))) {
+        showError(t('cap.tooFar'));
+        return;
+      }
+
+      const capsule = {
+        id: Date.now().toString(36),
+        text,
+        createdAt: new Date().toISOString(),
+        unlockDate: $('cap-date').value,
+        opened: false,
+      };
+      await saveCapList([...capsules, capsule]);
+      $('cap-text').value = '';
+      $('cap-date').value = '';
+      $('cap-text').focus();
     });
 
     // 添加里程碑

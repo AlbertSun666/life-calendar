@@ -150,3 +150,59 @@ test('milestones 非数组时规整为空数组', async () => {
   const stored = JSON.parse(localStorage.getItem('life-calendar:settings'));
   assert.deepEqual(stored.milestones, []);
 });
+
+/* ---------- B1：时间胶囊导入 ---------- */
+
+test('导入含时间胶囊成功（opened 缺省规整为 false）', async () => {
+  global.localStorage.store = {};
+  const json = JSON.stringify({
+    app: 'life-calendar',
+    settings: { milestones: [] },
+    capsules: [
+      { id: 'abc', text: '给未来的自己', createdAt: '2026-01-01T00:00:00.000Z', unlockDate: '2027-01-01' },
+      { id: 'def', text: '已开启的', createdAt: '2025-01-01T00:00:00.000Z', unlockDate: '2026-01-01', opened: true },
+    ],
+  });
+  await importData(json);
+  const stored = JSON.parse(localStorage.getItem('life-calendar:capsules'));
+  assert.equal(stored.length, 2);
+  assert.equal(stored[0].opened, false); // 缺省规整
+  assert.equal(stored[1].opened, true);
+});
+
+test('capsules 非数组抛 INVALID', async () => {
+  await assert.rejects(() => importData(JSON.stringify({
+    app: 'life-calendar',
+    settings: { milestones: [] },
+    capsules: 'not-array',
+  })), { message: 'INVALID' });
+});
+
+test('capsule 缺字段抛 INVALID', async () => {
+  await assert.rejects(() => importData(JSON.stringify({
+    app: 'life-calendar',
+    settings: { milestones: [] },
+    capsules: [{ id: 'abc', text: '只 id+text' }], // 缺 createdAt / unlockDate
+  })), { message: 'INVALID' });
+});
+
+test('capsule 字段类型错误抛 INVALID', async () => {
+  await assert.rejects(() => importData(JSON.stringify({
+    app: 'life-calendar',
+    settings: { milestones: [] },
+    capsules: [{ id: 123, text: 'x', createdAt: 'a', unlockDate: 'b' }], // id 非字符串
+  })), { message: 'INVALID' });
+});
+
+test('缺 capsules 字段可导入（向前兼容旧备份，不动既有胶囊）', async () => {
+  global.localStorage.store = {};
+  localStorage.setItem('life-calendar:capsules', JSON.stringify([{ id: 'keep', text: '旧', createdAt: 'a', unlockDate: 'b', opened: false }]));
+  const json = JSON.stringify({
+    app: 'life-calendar',
+    settings: { nickname: 'no-cap', milestones: [] },
+  });
+  await importData(json);
+  const stored = JSON.parse(localStorage.getItem('life-calendar:capsules'));
+  assert.equal(stored.length, 1);
+  assert.equal(stored[0].id, 'keep'); // 旧备份不含 capsules 字段时，本机既有胶囊不被清空
+});

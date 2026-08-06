@@ -45,5 +45,11 @@ export const MILESTONE_ICONS = ['cake', 'rings', 'flag', 'star', 'heart'];
 // storage.sync 单项上限 8KB，里程碑数量留个安全上限
 export const MAX_MILESTONES = 60;
 
+// B1：时间胶囊——存 storage.local（长文超 sync 限额），仅本机
+export const CAPSULE_MAX_YEARS = 5;   // 解锁日期距写入日最远 5 年（§7 承诺边界）
+export const CAPSULE_MAX_LENGTH = 2000; // 单条胶囊字符上限
+export const MAX_CAPSULES = 20;       // 胶囊数量上限
+export const CAPSULE_STORAGE_KEY = 'capsules'; // [{ id, text, createdAt, unlockDate, opened }]
+
 // 存储 key（整个 settings 对象存在一个 key 下，远低于 8KB 单项限额）
 export const STORAGE_KEY = 'settings';

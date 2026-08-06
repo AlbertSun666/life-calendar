@@ -269,14 +269,8 @@ const STRINGS = {
   'sp.reviewReplay': {
     'zh-CN': '查看年度复盘', 'zh-TW': '查看年度復盤', ja: '年間レビューを見る', ko: '연간 리뷰 보기', en: 'View year-in-review',
   },
-  'review.close': {
-    'zh-CN': '关闭', 'zh-TW': '關閉', ja: '閉じる', ko: '닫기', en: 'Close',
-  },
   'review.snooze': {
     'zh-CN': '7 天后再提醒', 'zh-TW': '7 天後再提醒', ja: '7 日後に再通知', ko: '7일 후 다시 알림', en: 'Remind me in 7 days',
-  },
-  'review.dontRemind': {
-    'zh-CN': '今年不再提醒', 'zh-TW': '今年不再提醒', ja: '今年は通知しない', ko: '올해 더 이상 알리지 않음', en: "Don't remind this year",
   },
   'sp.dataHint': {
     'zh-CN': '导出会把设置、重要日期、自定义主题与背景图打包为一个 JSON 文件；换设备或重装后可用导入还原。',
@@ -771,6 +765,78 @@ const STRINGS = {
   },
   'review.dontRemind': {
     'zh-CN': '不再自动提醒', 'zh-TW': '不再自動提醒', ja: '自動で通知しない', ko: '자동 알림 안 함', en: "Don't remind me again",
+  },
+
+  // B1：时间胶囊（设置面板区块）
+  'cap.section': {
+    'zh-CN': '时间胶囊', 'zh-TW': '時間膠囊', ja: 'タイムカプセル', ko: '타임캡슐', en: 'Time capsule',
+  },
+  'cap.hint': {
+    'zh-CN': '写一段话给未来的自己，到那天打开新标签页时会看到它。',
+    'zh-TW': '寫一段話給未來的自己，到那天打開新分頁時會看到它。',
+    ja: '未来の自分へのメッセージを書きましょう。その日に新しいタブを開くと表示されます。',
+    ko: '미래의 나에게 메시지를 남겨보세요. 그날 새 탭을 열면 표시됩니다.',
+    en: 'Write a message to your future self. It will appear when you open a new tab on that day.',
+  },
+  'cap.notice': {
+    'zh-CN': '胶囊保存在本机浏览器中；换设备或重装前请用「导出数据」备份。最远可设定 5 年后。',
+    'zh-TW': '膠囊儲存在本機瀏覽器中；換裝置或重裝前請用「匯出資料」備份。最遠可設定 5 年後。',
+    ja: 'カプセルはこの端末のブラウザに保存されます。端末変更や再インストール前に「データをエクスポート」でバックアップしてください。最長 5 年先まで設定できます。',
+    ko: '캡슐은 이 기기의 브라우저에만 저장됩니다. 기기 변경이나 재설치 전에 「데이터보내기」로 백업하세요. 최대 5년 후까지 설정할 수 있습니다.',
+    en: 'Capsules are stored in this browser only. Export your data before switching devices or reinstalling. You can set a date up to 5 years ahead.',
+  },
+  'cap.placeholder': {
+    'zh-CN': '写给未来的自己……',
+    'zh-TW': '寫給未來的自己……',
+    ja: '未来の自分へ……',
+    ko: '미래의 나에게……',
+    en: 'To my future self…',
+  },
+  'cap.unlockDate': {
+    'zh-CN': '解锁日期', 'zh-TW': '解鎖日期', ja: '開封日', ko: '개봉 날짜', en: 'Unlock date',
+  },
+  'cap.add': {
+    'zh-CN': '封存', 'zh-TW': '封存', ja: '封入する', ko: '봉인하기', en: 'Seal it',
+  },
+  'cap.waiting': {
+    'zh-CN': '{date} 解锁', 'zh-TW': '{date} 解鎖', ja: '{date} に開封', ko: '{date} 개봉', en: 'Unlocks {date}',
+  },
+  'cap.opened': {
+    'zh-CN': '已开启', 'zh-TW': '已開啟', ja: '開封済み', ko: '개봉함', en: 'Opened',
+  },
+  'cap.empty': {
+    'zh-CN': '还没有时间胶囊。', 'zh-TW': '還沒有時間膠囊。', ja: 'タイムカプセルはまだありません。', ko: '아직 타임캡슐이 없습니다.', en: 'No time capsules yet.',
+  },
+  'cap.tooFar': {
+    'zh-CN': '解锁日期最远为 5 年后，请重新选择。',
+    'zh-TW': '解鎖日期最遠為 5 年後，請重新選擇。',
+    ja: '開封日は最長 5 年先までです。選び直してください。',
+    ko: '개봉 날짜는 최대 5년 후까지입니다. 다시 선택하세요.',
+    en: 'The unlock date can be at most 5 years from now. Please pick another date.',
+  },
+  'cap.pastDate': {
+    'zh-CN': '解锁日期须晚于今天。',
+    'zh-TW': '解鎖日期須晚於今天。',
+    ja: '開封日は今日より後の日付にしてください。',
+    ko: '개봉 날짜는 오늘 이후여야 합니다.',
+    en: 'The unlock date must be later than today.',
+  },
+  'cap.deleteConfirm': {
+    'zh-CN': '删除这枚时间胶囊？', 'zh-TW': '刪除這枚時間膠囊？', ja: 'このタイムカプセルを削除しますか？', ko: '이 타임캡슐을 삭제하시겠습니까?', en: 'Delete this time capsule?',
+  },
+  // B1：解锁展示卡
+  'cap.unlockTitle': {
+    'zh-CN': '一枚时间胶囊到日子了',
+    'zh-TW': '一枚時間膠囊到日子了',
+    ja: 'タイムカプセルの開封日です',
+    ko: '타임캡슐 개봉일입니다',
+    en: 'A time capsule is ready',
+  },
+  'cap.fromPast': {
+    'zh-CN': '{date}，你写下：', 'zh-TW': '{date}，你寫下：', ja: '{date}、あなたは書きました：', ko: '{date}, 당신이 남긴 말:', en: 'On {date}, you wrote:',
+  },
+  'cap.close': {
+    'zh-CN': '收好了', 'zh-TW': '收好了', ja: '受け取りました', ko: '잘 받았어요', en: 'Got it',
   },
 
   // F-11：首日体验

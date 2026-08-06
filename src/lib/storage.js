@@ -1,7 +1,7 @@
 // 存储层：优先 chrome.storage.sync（随浏览器账号同步）；
 // 无扩展环境（直接以网页打开调试时）降级为 localStorage。
 
-import { DEFAULT_SETTINGS, STORAGE_KEY } from './constants.js';
+import { DEFAULT_SETTINGS, STORAGE_KEY, CAPSULE_STORAGE_KEY } from './constants.js';
 
 const hasChromeSync =
   typeof chrome !== 'undefined' && !!(chrome.storage && chrome.storage.sync);
@@ -116,14 +116,45 @@ export async function deleteBgImage(id) {
   localStorage.removeItem(LOCAL_PREFIX + bgKey(id));
 }
 
+/* ---------- B1：时间胶囊（存 storage.local，长文超 sync 8KB 限额，仅本机） ---------- */
+
+/** 读取全部时间胶囊（无则返回 []） */
+export async function getCapsules() {
+  if (hasChromeLocal) {
+    const data = await chrome.storage.local.get(CAPSULE_STORAGE_KEY);
+    return Array.isArray(data[CAPSULE_STORAGE_KEY]) ? data[CAPSULE_STORAGE_KEY] : [];
+  }
+  try {
+    const raw = localStorage.getItem(LOCAL_PREFIX + CAPSULE_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 写入全部时间胶囊（覆盖式） */
+export async function saveCapsules(capsules) {
+  try {
+    if (hasChromeLocal) {
+      await chrome.storage.local.set({ [CAPSULE_STORAGE_KEY]: capsules });
+      return;
+    }
+    localStorage.setItem(LOCAL_PREFIX + CAPSULE_STORAGE_KEY, JSON.stringify(capsules));
+  } catch (err) {
+    throw new StorageWriteError(isQuotaError(err) ? 'quota' : 'unknown', '保存时间胶囊失败');
+  }
+}
+
 /* ---------- 数据导出 / 导入（F-02 / F-03：换设备、重装、备份） ---------- */
 
 const DATA_APP = 'life-calendar';
 
-/** 导出：全部设置（含里程碑 / 自定义主题）+ 所有背景图（dataURL 内嵌），返回 JSON 字符串 */
+/** 导出：全部设置（含里程碑 / 自定义主题）+ 所有背景图（dataURL 内嵌）+ 时间胶囊，返回 JSON 字符串 */
 export async function exportData() {
   const settings = await mergedSettings();
   const bgImages = {};
+  const capsules = await getCapsules();
 
   if (hasChromeLocal) {
     // 读取 storage.local 中所有 bgimg-* 键
@@ -146,6 +177,7 @@ export async function exportData() {
     exportedAt: new Date().toISOString(),
     settings,
     bgImages,
+    capsules,
   });
 }
 
@@ -195,6 +227,28 @@ export async function importData(json) {
     }
   }
 
+  // B1：时间胶囊——缺省视为空（向前兼容旧备份）；有则校验结构
+  let capsules = [];
+  if (data.capsules !== undefined) {
+    if (!Array.isArray(data.capsules)) throw new Error('INVALID');
+    for (const c of data.capsules) {
+      if (
+        !c || typeof c !== 'object' ||
+        typeof c.id !== 'string' || typeof c.text !== 'string' ||
+        typeof c.createdAt !== 'string' || typeof c.unlockDate !== 'string'
+      ) {
+        throw new Error('INVALID');
+      }
+    }
+    capsules = data.capsules.map((c) => ({
+      id: c.id,
+      text: c.text,
+      createdAt: c.createdAt,
+      unlockDate: c.unlockDate,
+      opened: c.opened === true,
+    }));
+  }
+
   // 先写设置：成功后主题/里程碑等权威数据已落地，即使图写入失败设置也自洽
   await saveRaw(imported);
 
@@ -205,6 +259,8 @@ export async function importData(json) {
       await saveBgImage(id, dataURL);
       written.push(id);
     }
+    // 时间胶囊与背景图同属 storage.local，随图一并写入
+    if (data.capsules !== undefined) await saveCapsules(capsules);
   } catch (err) {
     // 回滚本轮已写入的背景图
     await Promise.all(written.map((id) => deleteBgImage(id).catch(() => {})));
@@ -242,6 +298,19 @@ async function applyDevOverrides(settings) {
   if (p.has('review')) {
     settings.lastReviewYear = 0; // 让跨年复盘立即触发（需配合 ?today=1月）
     settings.lastBirthdayReviewYear = 0;
+  }
+  // 截图验证辅助：注入一枚昨天到期的时间胶囊（B1，解锁卡立即弹出）
+  if (p.has('cap')) {
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    await saveCapsules([
+      {
+        id: 'dev-cap',
+        text: '一年前的我：\n\n不知道你读到这封信的时候，正在经历什么。但请记得，写下这段话的那个晚上，我很认真地对你说——无论这一年过得怎样，你都已经走了很远。\n\n替我看看窗外的月亮。',
+        createdAt: '2025-08-06T22:30:00.000Z',
+        unlockDate: yesterday,
+        opened: false,
+      },
+    ]);
   }
   // 注入一个演示用自定义主题并选中（验证自定义主题渲染链路）
   if (p.has('ct')) {

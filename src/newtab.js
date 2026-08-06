@@ -1,7 +1,7 @@
 // 新标签页主逻辑：渲染人生日历（年网格 + 当年的月日网格）
 
 import { LIFE_YEARS, YEAR_COLS, LIFE_STAGES } from './lib/constants.js';
-import { getSettings, saveSettings, onSettingsChanged, getBgImage } from './lib/storage.js';
+import { getSettings, saveSettings, onSettingsChanged, getBgImage, getCapsules, saveCapsules } from './lib/storage.js';
 import { resolveTheme, allThemes, THEME_PRESETS } from './lib/theme-presets.js';
 import { buildThemeCSS } from './lib/theme-css.js';
 import {
@@ -57,13 +57,21 @@ async function init() {
   // 开发预览：?settings=open 直接打开设置弹窗（无头截图无法点击，以此截取弹窗态）
   if (IS_DEV && new URLSearchParams(location.search).get('settings') === 'open') {
     openSettingsModal();
-    // 截图验证辅助：自动滚动到数据区
-    if (new URLSearchParams(location.search).get('scroll') === 'data') {
+    // 截图验证辅助：自动滚动到指定区块（?scroll=data / ?scroll=cap）
+    const scrollTarget = new URLSearchParams(location.search).get('scroll');
+    const SCROLL_TITLES = {
+      data: ['数据', '資料', 'データ', '데이터', 'Data'],
+      cap: ['时间胶囊', '時間膠囊', 'タイムカプセル', '타임캡슐', 'Time capsule'],
+    };
+    if (SCROLL_TITLES[scrollTarget]) {
       setTimeout(() => {
-        const titles = ['数据', '資料', 'データ', '데이터', 'Data']; // 五语言的「数据」标题
+        const titles = SCROLL_TITLES[scrollTarget];
         const sections = Array.from(document.querySelectorAll('.sp-section'));
-        const dataSec = sections.find((s) => titles.some((t) => s.textContent.includes(t)));
-        dataSec?.scrollIntoView({ behavior: 'instant', block: 'start' });
+        const sec = sections.find((s) => {
+          const h = s.querySelector('.sp-section-title');
+          return h && titles.includes(h.textContent.trim());
+        });
+        sec?.scrollIntoView({ behavior: 'instant', block: 'start' });
       }, 300);
     }
   }
@@ -127,6 +135,9 @@ function renderPage() {
 
   // F-08：跨年 / 生日复盘卡触发检查（生日优先）
   checkReviewTrigger(birth, today);
+
+  // B1：时间胶囊解锁检查（与复盘卡互斥：同次加载只弹一张卡，复盘卡优先）
+  checkCapsuleUnlock(today);
 
   // 标题与统计
   const title = settings.nickname
@@ -210,7 +221,7 @@ function buildGrid(birth, today) {
 
   const year = viewYear ?? today.year; // 月份网格当前展示的年份
   buildYearCells(grid, birth, today, year);
-  buildMonthRows(grid, today, year);
+  buildMonthRows(grid, birth, today, year);
 }
 
 function buildYearCells(grid, birth, today, year) {
@@ -454,7 +465,7 @@ function bindGridKeydown() {
   });
 }
 
-function buildMonthRows(grid, today, year) {
+function buildMonthRows(grid, birth, today, year) {
   for (let month = 1; month <= 12; month++) {
     const row = 5 + month; // 年网格占第 1-5 行
 
@@ -863,6 +874,52 @@ function closeReviewCard() {
   $('review-overlay').hidden = true;
 }
 
+/* ---------- B1：时间胶囊 ---------- */
+
+/** 到期检测：今天 >= 解锁日期且未开启的最早一枚；复盘卡已弹时不再叠加 */
+async function checkCapsuleUnlock(today) {
+  if (!$('review-overlay').hidden) return; // 复盘卡优先，胶囊下次再遇
+  const capsules = await getCapsules();
+  const due = capsules
+    .filter((c) => !c.opened && compareYMD(parseISODate(c.unlockDate) || { year: 9999, month: 12, day: 31 }, today) <= 0)
+    .sort((a, b) => a.unlockDate < b.unlockDate ? -1 : 1);
+  if (due.length === 0) return;
+  showCapsuleCard(due[0]);
+}
+
+let openCapsuleId = null; // 当前展示中的胶囊 id（关闭时标记 opened 用）
+
+/** 展示解锁卡：过去写下的原文 + 封存日期；关闭后标记已开启 */
+function showCapsuleCard(capsule) {
+  const overlay = $('capsule-overlay');
+  const card = $('capsule-card');
+  openCapsuleId = capsule.id;
+  card.innerHTML = `
+    <h2 class="capsule-title">${escapeHtml(t('cap.unlockTitle'))}</h2>
+    <p class="capsule-from">${escapeHtml(t('cap.fromPast', { date: capsule.createdAt.slice(0, 10) }))}</p>
+    <p class="capsule-text">${escapeHtml(capsule.text)}</p>
+    <div class="capsule-actions">
+      <button class="capsule-close" type="button">${escapeHtml(t('cap.close'))}</button>
+    </div>
+  `;
+  overlay.hidden = false;
+
+  card.querySelector('.capsule-close').addEventListener('click', closeCapsuleCard);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeCapsuleCard();
+  });
+}
+
+/** 关闭解锁卡并标记该胶囊已开启（开启日期即今天遇见的日子） */
+async function closeCapsuleCard() {
+  if (!openCapsuleId) return;
+  const id = openCapsuleId;
+  openCapsuleId = null;
+  $('capsule-overlay').hidden = true;
+  const capsules = await getCapsules();
+  await saveCapsules(capsules.map((c) => (c.id === id ? { ...c, opened: true } : c)));
+}
+
 /* ---------- 首次使用引导 ---------- */
 
 function showOnboarding() {
@@ -1035,6 +1092,11 @@ function bindEvents() {
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      // B1：胶囊卡打开时 Esc 关闭并标记已开启
+      if (openCapsuleId) {
+        closeCapsuleCard();
+        return;
+      }
       // V1：钻取视图打开时，Esc 优先退出钻取
       if (drillYear !== null) {
         closeDrill(parseISODate(settings.birthdate), resolveToday());

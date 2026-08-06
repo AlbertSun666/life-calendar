@@ -1087,6 +1087,74 @@ body[data-glyph='none'] .cell.day.milestone .num {
   cursor: pointer;
 }
 
+/* ---------- B1：时间胶囊解锁卡 ---------- */
+
+.capsule-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 26;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(24, 24, 24, 0.38);
+  backdrop-filter: blur(4px);
+}
+
+.capsule-card {
+  width: min(440px, 88vw);
+  max-height: 84vh;
+  overflow-y: auto;
+  padding: 36px 36px 28px;
+  border-radius: 16px;
+  background: var(--panel-bg, #ffffff);
+  color: var(--text, #1f1f1f);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.22);
+  text-align: center;
+}
+
+.capsule-title {
+  margin: 0;
+  font-family: var(--font-title);
+  font-size: 22px;
+  letter-spacing: 0.06em;
+}
+.capsule-from {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-family: var(--font-num);
+}
+.capsule-text {
+  margin: 20px 0 0;
+  padding: 18px 20px;
+  border-radius: 10px;
+  background: var(--cell-future, #fafafa);
+  border: 1px solid var(--cell-line);
+  font-size: 15px;
+  line-height: 2;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.capsule-actions {
+  margin-top: 24px;
+}
+.capsule-close {
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-on, #ffffff);
+  font-size: 14px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.capsule-close:hover {
+  opacity: 0.85;
+}
+
 [hidden] { display: none !important; }
 
 /* 窄屏适配：整体留白收紧 */
@@ -1126,6 +1194,7 @@ body[data-glyph='none'] .cell.day.milestone .num {
   .history,
   .settings-overlay,
   .review-overlay,
+  .capsule-overlay,
   .onboarding,
   .drill-entry,
   .drill-view {
