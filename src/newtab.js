@@ -1083,8 +1083,11 @@ function bindEvents() {
     closeDrill(parseISODate(settings.birthdate), resolveToday());
   });
 
-  // 设置入口：打开悬浮弹窗（遮罩点击关闭只在弹窗挂载时绑定一次，见 openSettingsModal）
+  // 设置入口：打开悬浮弹窗；遮罩点击关闭在此绑定一次（弹窗会因切换语言重建，勿随挂载重复绑定）
   $('settings-btn').addEventListener('click', openSettingsModal);
+  $('settings-overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeSettingsModal();
+  });
 
   // F-08：复盘卡遮罩点击关闭 + Esc 关闭
   $('review-overlay').addEventListener('click', (e) => {
@@ -1126,6 +1129,7 @@ function bindEvents() {
   onSettingsChanged((next) => {
     settings = next;
     setLanguage(settings.language);
+    invalidateSettingsPanel(); // 语言可能随同步变化，面板文案需重建
     applyTheme(settings.theme);
     if (parseISODate(settings.birthdate)) renderPage();
     else showOnboarding();
@@ -1180,6 +1184,7 @@ async function changeLanguage(lang) {
   }
   setLanguage(lang);
   buildLangMenu();
+  invalidateSettingsPanel(); // 此时弹窗必为关闭态——遮罩挡住了语言菜单
   applyTheme(settings.theme);
   if (parseISODate(settings.birthdate)) renderPage();
   else showOnboarding();
@@ -1229,6 +1234,13 @@ function applyDevDrillParam() {
 
 let settingsMounted = false;
 
+/** 面板只挂载一次且文案在挂载时生成；语言切换后作废，下次打开时重建 */
+function invalidateSettingsPanel() {
+  if (!settingsMounted) return;
+  settingsMounted = false;
+  $('settings-root').textContent = '';
+}
+
 function openSettingsModal() {
   $('settings-overlay').hidden = false;
   if (!settingsMounted) {
@@ -1261,10 +1273,6 @@ function openSettingsModal() {
         applyTheme(settings.theme);
         if (parseISODate(settings.birthdate)) renderPage();
       },
-    });
-    // 点击遮罩（弹窗之外的区域）关闭
-    $('settings-overlay').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) closeSettingsModal();
     });
   }
 }
